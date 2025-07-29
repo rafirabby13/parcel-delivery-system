@@ -1,24 +1,26 @@
 import AppError from "../../errorHelpers/AppError";
-import { IAuthProviders, IUser } from "./user.interface";
+import { IAuthProviders, IUser, Role } from "./user.interface";
 import { User } from "./user.model";
 import httpStatus from "http-status-codes"
 import bcryptjs from "bcryptjs"
+import { envVars } from "../../config/env";
+import { JwtPayload } from "jsonwebtoken";
 
 
 const createUser = async (payload: Partial<IUser>) => {
 
 
 
-    const { email,password, ...rest } = payload
+    const { email, password, ...rest } = payload
     const isUserExist = await User.findOne({ email })
     if (isUserExist) {
         throw new AppError(httpStatus.BAD_REQUEST, 'User Already Exist')
     }
 
-    const hashedPassword = await bcryptjs.hash(password as string, 10)
-    console.log(hashedPassword)
+    const hashedPassword = await bcryptjs.hash(password as string, envVars.BCRYPT_SALT_ROUND)
+    // console.log(hashedPassword)
 
-    const isPasswordMatched = await bcryptjs.compare( password as string,hashedPassword)
+    const isPasswordMatched = await bcryptjs.compare(password as string, hashedPassword)
     console.log(isPasswordMatched)
 
     const authProvider: IAuthProviders = {
@@ -35,6 +37,46 @@ const createUser = async (payload: Partial<IUser>) => {
     // return {}
 }
 
+const UpdateUser = async (userId: string, payload: Partial<IUser>, decodedtoken: JwtPayload) => {
+    const isUserExist = await User.findById(userId)
+    if (!isUserExist) {
+        throw new AppError(httpStatus.NOT_FOUND, 'Invalid user id..')
+    }
+
+
+    // if (isUserExist.isDeleted || isUserExist.isActive == IsActive.BLOCKED ) {
+    //     throw new AppError(httpStatus.FORBIDDEN, 'This user cant be updated .. ')
+    // }
+
+    if (payload.role) {
+        if (decodedtoken.role === Role.SENDER || decodedtoken.role == Role.RECEIVER || decodedtoken.role == Role.DELIVERY_PERSON) {
+            throw new AppError(httpStatus.FORBIDDEN, 'Unauthorize access')
+        }
+
+        if (payload.role === Role.SUPER_ADMIN && decodedtoken.role == Role.ADMIN) {
+            throw new AppError(httpStatus.BAD_REQUEST, 'Unauthorize access')
+
+        }
+    }
+
+    if (payload.isActive || payload.isDeleted || payload.isVerified) {
+        if (decodedtoken.role === Role.SENDER || decodedtoken.role == Role.RECEIVER || decodedtoken.role == Role.DELIVERY_PERSON) {
+            throw new AppError(httpStatus.FORBIDDEN, 'Unauthorize access')
+        }
+    }
+
+    if (payload.password) {
+        payload.password = await bcryptjs.hash(payload.password, Number(envVars.BCRYPT_SALT_ROUND))
+    }
+
+    const newUpdatedUser = await User.findByIdAndUpdate(userId, payload, { new: true, runValidators: true })
+
+    
+    return newUpdatedUser
+    // return {}
+}
+
+
 const getAllUser = async () => {
     const users = await User.find({})
 
@@ -47,5 +89,6 @@ const getAllUser = async () => {
 
 export const userServices = {
     createUser,
-    getAllUser
+    getAllUser,
+    UpdateUser
 }
