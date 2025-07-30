@@ -5,13 +5,24 @@ import cors from "cors"
 import { router } from "./app/routes/routes.index"
 // import httpStatus from "http-status-codes"
 import { globalErrorhandlers } from "./app/middlewares/globalErrorHandlers"
-import { success } from "zod"
+import cookieParser from "cookie-parser"
 import { notFound } from "./app/middlewares/notFound"
+import passport from "passport"
+import expressSession from "express-session"
 const app = express()
 
 
+
+app.use(expressSession({
+    secret: "Secret",
+    resave: false,
+    saveUninitialized: false
+}))
 app.use(express.json())
+app.use(passport.initialize())
+app.use(passport.session())
 app.use(cors())
+app.use(cookieParser())
 app.use("/api/v1", router)
 
 app.get("/", (req: Request, res: Response) => {
