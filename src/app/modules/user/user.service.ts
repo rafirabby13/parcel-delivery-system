@@ -17,7 +17,7 @@ const createUser = async (payload: Partial<IUser>) => {
         throw new AppError(httpStatus.BAD_REQUEST, 'User Already Exist')
     }
 
-    const hashedPassword = await bcryptjs.hash(password as string, envVars.BCRYPT_SALT_ROUND)
+    const hashedPassword = await bcryptjs.hash(password as string, Number(envVars.BCRYPT_SALT_ROUND))
     // console.log(hashedPassword)
 
     const isPasswordMatched = await bcryptjs.compare(password as string, hashedPassword)
