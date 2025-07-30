@@ -5,6 +5,6 @@ export const handleDupliacteError = (err: any): TGenericErrorResponse => {
     const duplicate = err.message.match(/"([^*]*)"/)
     return {
         statusCode: 400,
-        message: `Duplicate error at ${duplicate[1]}`
+        message: `Duplicate error at ${duplicate[1]} || ${err.message}`
     }
 }

@@ -29,7 +29,7 @@ export const checkAuth = (...authRoles: string[]) => async (req: Request, res: R
             throw new AppError(httpStatus.BAD_REQUEST, "User is deleted")
         }
         if (!authRoles.includes(verifiedToken.role)) {
-            throw new AppError(403, 'Unauthorize Access, You cant access all users')
+            throw new AppError(403, 'Unauthorize Access, You cant access these route')
         }
 
         req.user = verifiedToken
