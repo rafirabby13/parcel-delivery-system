@@ -38,6 +38,10 @@ const ParcelAddressSchema = new Schema({
 }, { _id: false, versionKey: false });
 
 const TrackingEventSchema = new Schema({
+    updaterId: {
+        type: String,
+        required: true
+    },
     status: {
         type: String,
         enum: Object.values(Parcel_Status),

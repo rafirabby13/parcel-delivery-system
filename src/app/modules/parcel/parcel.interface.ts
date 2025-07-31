@@ -4,10 +4,8 @@ import { Types } from "mongoose";
 export enum Parcel_Status {
     REQUESTED = "REQUESTED",
     APPROVED = "APPROVED",
-    DISPATCHED = "DISPATCHED",
     PICKED_UP = "PICKED_UP",
     IN_TRANSIT = "IN_TRANSIT",
-    OUT_FOR_DELIVERY = "OUT_FOR_DELIVERY",
     DELIVERED = "DELIVERED",
     CANCELLED = "CANCELLED",
     BLOCKED = "BLOCKED",
@@ -34,6 +32,7 @@ export interface Parcel_Address {
 }
 
 export interface Tracking_Event {
+    updaterId: string;
     status: Parcel_Status;
     locaton?: string,
     note?: string

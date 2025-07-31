@@ -34,7 +34,7 @@ const updateUser = catchAsync(async (req: Request, res: Response, next: NextFunc
     // console.log(token, verifiedToken)
     const verifiedToken = req.user
     const payload = req.body
-    const updatedUser = await userServices.UpdateUser(userId, payload, verifiedToken)
+    const updatedUser = await userServices.UpdateUser(userId, payload, verifiedToken as JwtPayload)
 
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
@@ -45,7 +45,9 @@ const updateUser = catchAsync(async (req: Request, res: Response, next: NextFunc
 })
 
 const getAllUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    const users = await userServices.getAllUser()
+
+    const role = req.query.role || ""
+    const users = await userServices.getAllUser(role as string)
 
 
     sendResponse(res, {

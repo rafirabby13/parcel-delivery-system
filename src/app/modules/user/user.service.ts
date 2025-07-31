@@ -71,14 +71,21 @@ const UpdateUser = async (userId: string, payload: Partial<IUser>, decodedtoken:
 
     const newUpdatedUser = await User.findByIdAndUpdate(userId, payload, { new: true, runValidators: true })
 
-    
+
     return newUpdatedUser
     // return {}
 }
 
 
-const getAllUser = async () => {
-    const users = await User.find({})
+const getAllUser = async (role: string) => {
+
+     const query = role ? { role } : {}; 
+
+    // console.log(roleQuery)
+    console.log("role", query)
+
+
+    const users = await User.find(query)
 
     const total = await User.countDocuments()
     return {
