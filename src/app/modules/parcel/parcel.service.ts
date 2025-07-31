@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 
 import AppError from "../../errorHelpers/AppError"
 import { generatetrackingId } from "../../utils/genrateTrackingId"
@@ -6,12 +8,16 @@ import { getTransactionId } from "../../utils/getTransactionId"
 import { Payment } from "../payment/payment.model"
 import { Role } from "../user/user.interface"
 import { User } from "../user/user.model"
+import { VALID_STATUS_TRANSITIONS } from "./parcel.constants"
 import { IParcel, Parcel_Status, Tracking_Event } from "./parcel.interface"
 import { Parcel } from "./parcel.model"
 
 
 const createParcel = async (payload: Partial<IParcel>) => {
 
+    if (!payload.senderId || !payload.parcelFee?.totalFee) {
+        throw new AppError(400, "Missing required fields: senderId and parcelFee are required");
+    }
     const trackingId = generatetrackingId()
 
     const session = await Parcel.startSession()
@@ -32,7 +38,7 @@ const createParcel = async (payload: Partial<IParcel>) => {
         }], { session })
 
         const updatedParcel = await Parcel.findOneAndUpdate(
-            parcel[0]._id,
+            { _id: parcel[0]._id },
             { paymentId: payment[0]._id },
             { new: true, runValidators: true, session })
             .populate("senderId", "email phone")
@@ -52,6 +58,10 @@ const createParcel = async (payload: Partial<IParcel>) => {
     }
 
 }
+
+
+
+
 const getAllParcel = async () => {
 
 
@@ -60,18 +70,50 @@ const getAllParcel = async () => {
     return allParcel
 
 }
+
+
+
+
 const getSingleParcelStatus = async (trackingId: string) => {
 
-
+    if (!trackingId) {
+        throw new AppError(400, "Invalid tracking ID provided");
+    }
     const selectedParcelStatus = await Parcel.findOne({ trackingId: trackingId })
+    if (!selectedParcelStatus) {
+        throw new AppError(404, "Parcel not found with the provided tracking ID");
+    }
+
 
     return selectedParcelStatus?.status
 
 }
+
+
+
+
+
 const updateParcel = async (parcelId: string, payload: Partial<IParcel>) => {
+    if (!parcelId) {
+        throw new AppError(400, "Parcel ID is required");
+    }
 
+    const existingParcel = await Parcel.findById(parcelId)
+    if (!existingParcel) {
+        throw new AppError(404, "Parcel not found");
+    }
 
-    const updatedParcel = await Parcel.findOneAndUpdate({ _id: parcelId }, payload, { new: true })
+    // Add audit information
+    const updateData = {
+        ...payload,
+        updatedAt: new Date()
+    }
+
+    const updatedParcel = await Parcel.findOneAndUpdate(
+        { _id: parcelId },
+        updateData,
+        { new: true, runValidators: true }
+    ).populate("senderId", "email phone name")
 
     return updatedParcel
 
@@ -80,25 +122,41 @@ const updateParcel = async (parcelId: string, payload: Partial<IParcel>) => {
 
 const assignParcelToDeliveryPerson = async (parcelId: string, deliveryPersonId: string, updaterId: string) => {
 
-
+    if (!parcelId || !deliveryPersonId || !updaterId) {
+        throw new AppError(400, "All parameters (parcelId, deliveryPersonId, updaterId) are required");
+    }
     // const parcel = await Parcel.findById(parcelId)
     const isDeliverPersonExist = await User.findById(deliveryPersonId)
     const isPercelExist = await Parcel.findById(parcelId)
-    if (!isDeliverPersonExist || ! isPercelExist) {
-        throw new AppError(404, "Try to update valid parcel")
+    const isUpdaterExist = await User.findById(updaterId)
+    if (!isDeliverPersonExist) {
+        throw new AppError(404, "Delivery person not found");
+    }
+    if (!isPercelExist) {
+        throw new AppError(404, "Parcel not found");
+    }
+    if (!isUpdaterExist) {
+        throw new AppError(404, "Updater not found");
+    }
+
+    if (isDeliverPersonExist.role !== Role.DELIVERY_PERSON) {
+        throw new AppError(400, "Selected user is not a delivery person");
+    }
+    if (isPercelExist.status !== Parcel_Status.REQUESTED) {
+        throw new AppError(400, `Cannot assign parcel with status ${isPercelExist.status}. Only REQUESTED parcels can be assigned.`);
     }
 
     const updatedTrackinEvents: Tracking_Event = {
         updaterId: updaterId,
         status: Parcel_Status.APPROVED,
-        note: "your parcel is approved"
+        note: "Parcel approved and assigned to delivery partner"
     }
     const updateDeliveryParson = {
         assignedDeliveryPartner: deliveryPersonId,
         status: updatedTrackinEvents.status
     }
 
-    const updatedData = await Parcel.findOneAndUpdate({ _id: parcelId }, updateDeliveryParson, { new: true, sanitizeFilter: true })
+    const updatedData = await Parcel.findOneAndUpdate({ _id: parcelId }, updateDeliveryParson, { new: true, runValidators: true })
 
     updatedData?.trackingEvents.push(updatedTrackinEvents)
     updatedData?.save()
@@ -106,12 +164,15 @@ const assignParcelToDeliveryPerson = async (parcelId: string, deliveryPersonId: 
     return updatedData
 
 }
+
+
+
 const getAllParcelById = async (id: string, user: any) => {
 
     if (id !== user.userId) {
-        throw new AppError(403, "U cant get these data")
+        throw new AppError(403, "Access denied: You can only view your own parcels")
     }
-    let query = {}
+    let query: any = {}
 
     if (user.role == Role.DELIVERY_PERSON) {
         query = { assignedDeliveryPartner: id }
@@ -130,21 +191,46 @@ const getAllParcelById = async (id: string, user: any) => {
 
 
 const updateParcelStatus = async (parcelId: string, payload: Tracking_Event) => {
-
-
-    const parcel = await Parcel.findById(parcelId)
-    if ((parcel?.assignedDeliveryPartner)?.toString() !== payload.updaterId) {
-         throw new AppError(403, "You are not permitted to updated stasus")
+    if (!parcelId || !payload.updaterId || !payload.status) {
+        throw new AppError(400, "Missing required fields: parcelId, updaterId, and status are required");
     }
 
-    
+    const user = await User.findById(payload.updaterId)
+    const parcel = await Parcel.findById(parcelId)
+    if (!parcel) {
+        throw new AppError(404, "Parcel not found");
+    }
+    if (!user) {
+        throw new AppError(404, "User not found");
+    }
+    if (user.role === Role.DELIVERY_PERSON && parcel.assignedDeliveryPartner?.toString() !== payload.updaterId) {
+        throw new AppError(403, "You are not authorized to update this parcel's status");
+    }
+    const currentStatus = parcel.status;
+    const nextStatus = payload.status;
+    // console.log(currentStatus)
+    if (!currentStatus) {
+        throw new AppError(400, "Current parcel status is missing");
+    }
+    const allowedTransitions = VALID_STATUS_TRANSITIONS[currentStatus];
+    if (!allowedTransitions.includes(nextStatus)) {
+        throw new AppError(400, `Invalid status transition from ${currentStatus} to ${nextStatus}`);
+    }
+    if (nextStatus === Parcel_Status.CANCELLED) {
+        if (user.role === Role.DELIVERY_PERSON) {
+            throw new AppError(403, "Delivery persons cannot cancel parcels");
+        }
+        if (user.role === Role.SENDER && currentStatus !== Parcel_Status.REQUESTED) {
+            throw new AppError(403, "Senders can only cancel parcels in REQUESTED status");
+        }
+    }
 
-    const updatedData = await Parcel.findOneAndUpdate({ _id: parcelId }, {status: payload.status}, { new: true, sanitizeFilter: true })
+    parcel.status = nextStatus;
+    parcel.trackingEvents.push(payload);
 
-    updatedData?.trackingEvents.push(payload)
-    updatedData?.save()
+    await parcel.save();
 
-    return updatedData
+    return parcel;
 
 }
 

@@ -66,7 +66,7 @@ const assignParcelToDeliveryPerson = catchAsync(async (req: Request, res: Respon
     // console.log(req.user)
 
 
-    const updatedParcel = await ParcelServices.assignParcelToDeliveryPerson(parcelId, deliveryPersonId,updaterId)
+    const updatedParcel = await ParcelServices.assignParcelToDeliveryPerson(parcelId, deliveryPersonId, updaterId)
     sendResponse(res, {
         success: true,
         statusCode: httpStatus.CREATED,
@@ -94,8 +94,8 @@ const updateParcelStatus = catchAsync(async (req: Request, res: Response, next: 
 
     const id = req.params.id
     const payload = req.body
+    console.log(req.user)
 
- 
     const updatedParcel = await ParcelServices.updateParcelStatus(id, payload)
     sendResponse(res, {
         success: true,

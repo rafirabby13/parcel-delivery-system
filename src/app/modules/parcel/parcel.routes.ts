@@ -14,7 +14,7 @@ router.get("/status",  checkAuth(...Object.values(Role)), ParcelController.getSi
 router.patch("/assign-delivery",  checkAuth(Role.ADMIN, Role.SUPER_ADMIN), ParcelController.assignParcelToDeliveryPerson)
 router.get("/all-parcel/:id",  checkAuth(...Object.values(Role)), ParcelController.getAllParcelById)
 router.post("/update/:parcelId",  checkAuth(Role.ADMIN, Role.SENDER, Role.SUPER_ADMIN), ParcelController.updateParcel)
-router.patch("/:id/update-status", validateRequest(trackingEventZodSchema) ,checkAuth(Role.ADMIN, Role.SUPER_ADMIN, Role.DELIVERY_PERSON), ParcelController.updateParcelStatus)
+router.patch("/:id/update-status", validateRequest(trackingEventZodSchema) ,checkAuth(Role.ADMIN, Role.SUPER_ADMIN, Role.DELIVERY_PERSON, Role.SENDER), ParcelController.updateParcelStatus)
 
 
 export const ParcelRoutes = router
