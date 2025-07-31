@@ -3,17 +3,11 @@ import { IsActive, Role } from "./user.interface";
 
 
 const AddressSchema = z.object({
-    division: z.string().min(1, { message: "Division is required" }),
-    city: z.string().min(1, { message: "City is required" }),
-    area: z.string().min(1, { message: "Area is required" }),
+    division: z.string().min(1, { message: "Division is required" }).optional(),
+    city: z.string().min(1, { message: "City is required" }).optional(),
+    area: z.string().min(1, { message: "Area is required" }).optional(),
     roadNo: z.string().optional(),
     houseNo: z.string().optional(),
-    coordinates: z
-        .object({
-            lat: z.number().optional(),
-            lng: z.number().optional(),
-        })
-        .optional(),
 });
 
 export const createUserZodSchema = z.object({
@@ -34,7 +28,6 @@ export const createUserZodSchema = z.object({
         .refine((val) => /[@$!%*?&]/.test(val), {
             message: "Password must include at least one special character",
         })
-        .optional()
     ,
     phone: z
         .string()
@@ -43,8 +36,8 @@ export const createUserZodSchema = z.object({
         }),
 
     picture: z.string().optional(),
-    address: AddressSchema,
-    role: z.enum(Object.values(Role)).optional(),
+    address: AddressSchema.optional(),
+    role: z.enum(Object.values(Role)),
     isVerified: z.boolean().optional().default(false),
     isDeleted: z.boolean().optional().default(false),
     isActive: z.enum(Object.values(IsActive)).optional()

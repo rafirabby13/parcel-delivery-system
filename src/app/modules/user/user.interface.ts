@@ -1,15 +1,12 @@
 import { Types } from "mongoose";
 
 export interface User_Address {
-    division: string,
-    city: string,
-    area: string,
+    division?: string,
+    city?: string,
+    area?: string,
     roadNo?: string,
     houseNo?: string,
-    coordinates?: {
-        lat: number,
-        lng: number
-    }
+    
 }
 export enum Role {
     SUPER_ADMIN = "SUPER_ADMIN",
@@ -32,10 +29,10 @@ export interface IUser {
     _id?:string, 
     name: string,
     email: string,
-    password?: string,
+    password: string,
     phone: string,
     picture?: string,
-    address: User_Address,
+    address?: User_Address,
     isActive?: IsActive,
     isVerified?: boolean,
     isDeleted?: boolean,
