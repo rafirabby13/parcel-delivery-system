@@ -145,7 +145,6 @@ export const parcelSchema = new Schema<IParcel>({
     paymentStatus: {
         type: String,
         enum: Object.values(Payment_Status),
-        required: [true, 'Payment status is required'],
         default: Payment_Status.PENDING
     },
     cancellationReason: {

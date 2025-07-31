@@ -6,19 +6,23 @@ import AppError from "../../errorHelpers/AppError"
 import { generatetrackingId } from "../../utils/genrateTrackingId"
 import { getTransactionId } from "../../utils/getTransactionId"
 import { Payment } from "../payment/payment.model"
+import { ISSLCommerz } from "../sslCommerz/sslCommerz.interface"
+import { SSlService } from "../sslCommerz/sslCommerz.service"
 import { Role } from "../user/user.interface"
 import { User } from "../user/user.model"
 import { VALID_STATUS_TRANSITIONS } from "./parcel.constants"
-import { IParcel, Parcel_Status, Tracking_Event } from "./parcel.interface"
+import { IParcel, Parcel_Status, Payment_Method, Tracking_Event } from "./parcel.interface"
 import { Parcel } from "./parcel.model"
 
 
 const createParcel = async (payload: Partial<IParcel>) => {
 
+    const transactionId = getTransactionId()
+
     if (!payload.senderId || !payload.parcelFee?.totalFee) {
         throw new AppError(400, "Missing required fields: senderId and parcelFee are required");
     }
-    const trackingId = generatetrackingId()
+    const trackingId: string = generatetrackingId()
 
     const session = await Parcel.startSession()
     session.startTransaction()
@@ -29,8 +33,17 @@ const createParcel = async (payload: Partial<IParcel>) => {
             ...payload
         }], { session })
 
+        const user = await User.findById(payload.senderId)
+
+        if (!parcel) {
+            throw new AppError(404, "Parcel is not created")
+        }
+        if (!user) {
+            throw new AppError(404, "Parcel is not found")
+        }
+
         const payment = await Payment.create([{
-            transactionId: getTransactionId(),
+            transactionId: transactionId,
             parcel: parcel[0]._id,
             amount: parcel[0].parcelFee?.totalFee,
             paymentMethod: parcel[0].paymentMethod,
@@ -44,10 +57,38 @@ const createParcel = async (payload: Partial<IParcel>) => {
             .populate("senderId", "email phone")
             .populate("paymentId", "_id transactionId")
 
+        const address = (parcel[0].senderInfo as any).detailAddress
+
+        const sslPayload: ISSLCommerz = {
+            transactionId: (payment[0] as any).transactionId,
+            address: address,
+            amount: (payment[0] as any).amount,
+            email: user?.email,
+            name: user?.name,
+            phone: user?.phone
+
+
+
+        }
+
+        // console.log("sslpayload", sslPayload)
+        let sslPayment: any
+
+        if (updatedParcel?.paymentMethod === Payment_Method.PREPAID) {
+
+            sslPayment = await SSlService.sslPaymentInit(sslPayload)
+        }
+
+
+        // console.log(sslPayment)
+
         await session.commitTransaction()
         session.endSession()
 
-        return updatedParcel
+        return {
+            paymentURL: sslPayment?.GatewayPageURL,
+            parcel: updatedParcel
+        }
 
 
     } catch (error: any) {

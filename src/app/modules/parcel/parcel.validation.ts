@@ -57,7 +57,7 @@ export const parcelZodSchema = z.object({
 
     parcelFee: parcelFeeZodSchema, // ✅ FIXED: Matches interface field name
     paymentMethod: z.enum(Payment_Method),
-    paymentStatus: z.enum(Payment_Status),
+    paymentStatus: z.enum(Payment_Status).optional(),
     codAmount: z.number().min(0, "COD amount cannot be negative").optional(),
 
     cancellationReason: z.string().max(200, "Cancellation reason too long").optional(),
