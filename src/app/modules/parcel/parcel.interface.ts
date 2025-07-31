@@ -53,6 +53,8 @@ export enum Payment_Method {
 export enum Payment_Status {
     PENDING = 'PENDING',
     PAID = 'PAID',
+    FAILED = 'FAILED',
+    CANCELLED = 'CANCELLED',
     REFUNDED = 'REFUNDED'
 }
 
@@ -81,8 +83,8 @@ export interface IParcel {
 
     parcelFee: Parcel_Fee;
     paymentMethod: Payment_Method;
-    paymentStatus: Payment_Status;
-    paymentId?: Types.ObjectId, 
+    paymentStatus?: Payment_Status;
+    paymentId?: Types.ObjectId,
     codAmount?: number;
 
     cancellationReason?: string;
