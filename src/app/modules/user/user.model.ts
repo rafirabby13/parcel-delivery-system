@@ -4,8 +4,8 @@ import { IsActive, IUser, Role } from "./user.interface";
 
 const UserAddressSchema = new Schema({
     division: { type: String, required: true },
-    city: { type: String, required: true },
-    area: { type: String, required: true },
+    city: { type: String , required: true},
+    area: { type: String , required: true},
     roadNo: { type: String },
     houseNo: { type: String },
     coordinates: {
@@ -26,14 +26,14 @@ const AuthProviderSchema = new Schema({
 const userSchema = new Schema<IUser>({
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
-    password: { type: String },
+    password: { type: String, required:true },
     phone: { type: String , required: true},
     picture: { type: String },
     address: UserAddressSchema,
     role: {
         type: String,
         enum: Object.values(Role),
-        default: Role.SENDER
+        required:true
     },
     isVerified: { type: Boolean, default: false },
     isDeleted: { type: Boolean, default: false },
