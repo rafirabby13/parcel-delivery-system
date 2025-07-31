@@ -20,7 +20,8 @@ const parcelFeeZodSchema = z.object({
 });
 
 // ✅ FIXED: Removed timestamp field to match interface
-const trackingEventZodSchema = z.object({
+export const trackingEventZodSchema = z.object({
+    updaterId: z.string(),
     status: z.enum(Parcel_Status),
     location: z.string().optional(),
     note: z.string().optional()
@@ -67,5 +68,6 @@ export const parcelZodSchema = z.object({
     // blockedBy: z.string().optional(),
 
 });
+
 
 
