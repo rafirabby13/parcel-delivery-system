@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateUserZodSchema = exports.createUserZodSchema = void 0;
+exports.blockZodSchema = exports.updateUserZodSchema = exports.createUserZodSchema = void 0;
 const zod_1 = __importDefault(require("zod"));
 const user_interface_1 = require("./user.interface");
 const AddressSchema = zod_1.default.object({
@@ -73,4 +73,7 @@ exports.updateUserZodSchema = zod_1.default.object({
     isVerified: zod_1.default.boolean().optional(),
     isDeleted: zod_1.default.boolean().optional(),
     isActive: zod_1.default.enum(Object.values(user_interface_1.IsActive)).optional(),
+});
+exports.blockZodSchema = zod_1.default.object({
+    adminId: zod_1.default.string()
 });

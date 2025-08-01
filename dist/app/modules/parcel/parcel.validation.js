@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parcelUpdateZodSchema = exports.trackingEventSchema = exports.assignDeliverySchema = exports.parcelZodSchema = exports.trackingEventZodSchema = void 0;
+exports.returnParcelZodSchema = exports.parcelUpdateZodSchema = exports.trackingEventSchema = exports.assignDeliverySchema = exports.parcelZodSchema = exports.trackingEventZodSchema = void 0;
 const zod_1 = require("zod");
 const parcel_interface_1 = require("./parcel.interface");
 // Address validation schema
@@ -92,4 +92,10 @@ exports.parcelUpdateZodSchema = zod_1.z.object({
     //   cancelledBy: z.string().optional(),
     // blockReason: z.string().max(200, "Block reason too long").optional(),
     // blockedBy: z.string().optional(),
+});
+exports.returnParcelZodSchema = zod_1.z.object({
+    returnReason: zod_1.z.string().min(1, "Return reason is required"),
+    returnType: zod_1.z.enum(parcel_interface_1.Cancel_Reason),
+    requestedBy: zod_1.z.string().min(1, "Requested by is required"),
+    returnLocation: zod_1.z.string().optional()
 });

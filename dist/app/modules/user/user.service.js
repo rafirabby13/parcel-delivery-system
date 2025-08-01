@@ -90,8 +90,108 @@ const getAllUser = (role) => __awaiter(void 0, void 0, void 0, function* () {
         total
     };
 });
+const blockUser = (userId, adminId) => __awaiter(void 0, void 0, void 0, function* () {
+    if (!userId || !adminId) {
+        throw new AppError_1.default(400, "User ID, reason, and admin ID are required");
+    }
+    // Verify admin permissions
+    const admin = yield user_model_1.User.findById(adminId);
+    if (!admin || (admin.role !== user_interface_1.Role.ADMIN && admin.role !== user_interface_1.Role.SUPER_ADMIN)) {
+        throw new AppError_1.default(403, "Only admins can block users");
+    }
+    // Get user to block
+    const userToBlock = yield user_model_1.User.findById(userId);
+    if (!userToBlock) {
+        throw new AppError_1.default(404, "User not found");
+    }
+    // Prevent blocking other admins (unless super admin)
+    if ((userToBlock.role === user_interface_1.Role.ADMIN || userToBlock.role === user_interface_1.Role.SUPER_ADMIN) &&
+        admin.role !== user_interface_1.Role.SUPER_ADMIN) {
+        throw new AppError_1.default(403, "Cannot block admin users");
+    }
+    // Prevent self-blocking
+    if (userId === adminId) {
+        throw new AppError_1.default(400, "Cannot block yourself");
+    }
+    // Check if already blocked
+    if (userToBlock.isActive === user_interface_1.IsActive.BLOCKED) {
+        throw new AppError_1.default(400, "User is already blocked");
+    }
+    const session = yield user_model_1.User.startSession();
+    session.startTransaction();
+    try {
+        // Block the user
+        const blockedUser = yield user_model_1.User.findByIdAndUpdate(userId, {
+            isActive: user_interface_1.IsActive.BLOCKED,
+        }, { new: true, session });
+        // Create block log entry (optional - for audit trail)
+        // You might want to create a separate BlockLog model for this
+        yield session.commitTransaction();
+        return {
+            blockedUser
+        };
+    }
+    catch (error) {
+        yield session.abortTransaction();
+        throw error;
+    }
+    finally {
+        yield session.endSession();
+    }
+});
+const unblockUser = (userId, adminId) => __awaiter(void 0, void 0, void 0, function* () {
+    if (!userId || !adminId) {
+        throw new AppError_1.default(400, "User ID, reason, and admin ID are required");
+    }
+    // Verify admin permissions
+    const admin = yield user_model_1.User.findById(adminId);
+    if (!admin || (admin.role !== user_interface_1.Role.ADMIN && admin.role !== user_interface_1.Role.SUPER_ADMIN)) {
+        throw new AppError_1.default(403, "Only admins can block users");
+    }
+    // Get user to block
+    const userToUnBlock = yield user_model_1.User.findById(userId);
+    if (!userToUnBlock) {
+        throw new AppError_1.default(404, "User not found");
+    }
+    // Prevent blocking other admins (unless super admin)
+    if ((userToUnBlock.role === user_interface_1.Role.ADMIN || userToUnBlock.role === user_interface_1.Role.SUPER_ADMIN) &&
+        admin.role !== user_interface_1.Role.SUPER_ADMIN) {
+        throw new AppError_1.default(403, "Cannot unblock admin users");
+    }
+    // Prevent self-blocking
+    if (userId === adminId) {
+        throw new AppError_1.default(400, "Cannot unblock yourself");
+    }
+    // Check if already blocked
+    if (userToUnBlock.isActive === user_interface_1.IsActive.ACTIVE) {
+        throw new AppError_1.default(400, "User is already active");
+    }
+    const session = yield user_model_1.User.startSession();
+    session.startTransaction();
+    try {
+        // Block the user
+        const unblockedUser = yield user_model_1.User.findByIdAndUpdate(userId, {
+            isActive: user_interface_1.IsActive.ACTIVE,
+        }, { new: true, session });
+        // Create block log entry (optional - for audit trail)
+        // You might want to create a separate BlockLog model for this
+        yield session.commitTransaction();
+        return {
+            unblockedUser
+        };
+    }
+    catch (error) {
+        yield session.abortTransaction();
+        throw error;
+    }
+    finally {
+        yield session.endSession();
+    }
+});
 exports.userServices = {
     createUser,
     getAllUser,
-    UpdateUser
+    UpdateUser,
+    blockUser,
+    unblockUser
 };

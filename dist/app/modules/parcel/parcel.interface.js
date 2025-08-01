@@ -1,6 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Payment_Status = exports.Payment_Method = exports.Parcel_Type = exports.Parcel_Status = void 0;
+exports.Payment_Status = exports.Payment_Method = exports.Parcel_Type = exports.Parcel_Status = exports.Cancel_Reason = void 0;
+var Cancel_Reason;
+(function (Cancel_Reason) {
+    Cancel_Reason["DELIVERY_FAILED"] = "DELIVERY_FAILED";
+    Cancel_Reason["ADDRESS_ISSUE"] = "ADDRESS_ISSUE";
+    Cancel_Reason["RECEIVER_REJECTED"] = "RECEIVER_REJECTED";
+    Cancel_Reason["SENDER_REQUESTED"] = "SENDER_REQUESTED";
+    Cancel_Reason["BUSINESS_POLICY"] = "BUSINESS_POLICY";
+})(Cancel_Reason || (exports.Cancel_Reason = Cancel_Reason = {}));
 var Parcel_Status;
 (function (Parcel_Status) {
     Parcel_Status["REQUESTED"] = "REQUESTED";
