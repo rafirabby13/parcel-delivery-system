@@ -1,6 +1,19 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Types } from "mongoose";
 
-
+export enum Cancel_Reason {
+  DELIVERY_FAILED = 'DELIVERY_FAILED',
+  ADDRESS_ISSUE = 'ADDRESS_ISSUE',
+  RECEIVER_REJECTED = 'RECEIVER_REJECTED',
+  SENDER_REQUESTED = 'SENDER_REQUESTED',
+  BUSINESS_POLICY = 'BUSINESS_POLICY',
+}
+export interface ReturnParcelPayload {
+    returnReason: string;
+    returnType: Cancel_Reason;
+    requestedBy: string; // userId who requested return
+    returnLocation?: string;
+}
 export enum Parcel_Status {
     REQUESTED = "REQUESTED",
     APPROVED = "APPROVED",

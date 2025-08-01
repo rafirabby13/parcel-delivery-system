@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Parcel_Status, Parcel_Type, Payment_Method, Payment_Status } from "./parcel.interface";
+import { Cancel_Reason, Parcel_Status, Parcel_Type, Payment_Method, Payment_Status } from "./parcel.interface";
 
 // Address validation schema
 const addressZodSchema = z.object({
@@ -122,4 +122,12 @@ export const parcelUpdateZodSchema = z.object({
 
   // blockReason: z.string().max(200, "Block reason too long").optional(),
   // blockedBy: z.string().optional(),
+});
+
+
+export const returnParcelZodSchema = z.object({
+  returnReason: z.string().min(1, "Return reason is required"),
+  returnType: z.enum(Cancel_Reason),
+  requestedBy: z.string().min(1, "Requested by is required"),
+  returnLocation: z.string().optional()
 });

@@ -4,6 +4,7 @@ import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import httpStatus from "http-status-codes"
 import { ParcelServices } from "./parcel.service";
+import { ReturnParcelPayload } from "./parcel.interface";
 
 const createParcel = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
 
@@ -107,6 +108,96 @@ const updateParcelStatus = catchAsync(async (req: Request, res: Response, next: 
     })
 
 })
+const getIncomingParcels = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+
+    const receiversPhoneNumber = req.query.phone
+    // const payload = req.body
+    // console.log(req.user)
+
+    const updatedParcel = await ParcelServices.getIncomingParcels(receiversPhoneNumber as string)
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.CREATED,
+        message: "Parcel status updated successfully",
+        data: updatedParcel
+    })
+
+})
+const confirmDelivery = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+
+    const { phone, trackingId } = req.query
+    // const payload = req.body
+
+
+    const updatedParcel = await ParcelServices.confirmDelivery(trackingId as string, phone as string)
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.CREATED,
+        message: "Parcel status updated successfully",
+        data: updatedParcel
+    })
+
+})
+const collectCODPayment = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+
+    const { deliveryPersonId, trackingId } = req.query
+    // const payload = req.body
+
+
+    const updatedParcel = await ParcelServices.collectCODPayment(trackingId as string, deliveryPersonId as string)
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.CREATED,
+        message: "Parcel status updated successfully",
+        data: updatedParcel
+    })
+
+})
+const blockParcel = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+
+    const parcelId = req.params.id
+    const adminId = req.body.adminId
+    // console.log(parcelId, adminId)
+
+    const updatedParcel = await ParcelServices.blockParcel(parcelId as string, adminId as string)
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.CREATED,
+        message: "Parcel Blocked successfully",
+        data: updatedParcel
+    })
+
+})
+const unblockParcel = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+
+    const parcelId = req.params.id
+    const adminId = req.body.adminId
+    // console.log(parcelId, adminId)
+
+    const updatedParcel = await ParcelServices.unblockParcel(parcelId as string, adminId as string)
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.CREATED,
+        message: "Parcel UnBlocked successfully",
+        data: updatedParcel
+    })
+
+})
+const returnParcel = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+
+    const parcelId = req.params.id
+    const returnData: ReturnParcelPayload = req.body
+    console.log(parcelId, returnData)
+
+    const updatedParcel = await ParcelServices.returnParcel(parcelId as string, returnData)
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.CREATED,
+        message: "Parcel returned successfully",
+        data: updatedParcel
+    })
+
+})
 
 
 
@@ -117,5 +208,11 @@ export const ParcelController = {
     updateParcel,
     assignParcelToDeliveryPerson,
     getAllParcelById,
-    updateParcelStatus
+    updateParcelStatus,
+    getIncomingParcels,
+    confirmDelivery,
+    collectCODPayment,
+    blockParcel,
+    unblockParcel,
+    returnParcel
 }
