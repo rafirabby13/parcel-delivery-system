@@ -19,8 +19,10 @@ const createParcel = catchAsync(async (req: Request, res: Response, next: NextFu
 })
 const getAllParcel = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
 
+    const query = req.query
 
-    const allParcel = await ParcelServices.getAllParcel()
+
+    const allParcel = await ParcelServices.getAllParcel(query as Record<string, string>)
     sendResponse(res, {
         success: true,
         statusCode: httpStatus.CREATED,
@@ -34,12 +36,12 @@ const getSingleParcelStatus = catchAsync(async (req: Request, res: Response, nex
     const trackingId = req.query.trackingId
 
 
-    const singleParcelStatus = await ParcelServices.getSingleParcelStatus(trackingId as string)
+    const singleParcelTrackingEvent = await ParcelServices.getSingleParcelStatus(trackingId as string)
     sendResponse(res, {
         success: true,
         statusCode: httpStatus.CREATED,
         message: "Parcel retrieved successfully",
-        data: singleParcelStatus
+        data: singleParcelTrackingEvent
     })
 
 })
@@ -94,7 +96,7 @@ const updateParcelStatus = catchAsync(async (req: Request, res: Response, next: 
 
     const id = req.params.id
     const payload = req.body
-    console.log(req.user)
+    // console.log(req.user)
 
     const updatedParcel = await ParcelServices.updateParcelStatus(id, payload)
     sendResponse(res, {

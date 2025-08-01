@@ -71,3 +71,55 @@ export const parcelZodSchema = z.object({
 
 
 
+export const assignDeliverySchema = z.object({
+  updaterId: z.string().length(24, { message: 'Invalid updaterId format' }),
+  parcelId: z.string().length(24, { message: 'Invalid parcelId format' }),
+  deliveryPersonId: z.string().length(24, { message: 'Invalid deliveryPersonId format' }),
+});
+
+export const trackingEventSchema = z.object({
+  updaterId: z.string().length(24, { message: 'Invalid updaterId format' }),
+  status: Parcel_Status,
+  location: z.string().optional(),
+  note: z.string().optional(),
+});
+
+
+
+export const parcelUpdateZodSchema = z.object({
+//   _id: z.string().optional(),
+//   trackingId: z.string().optional(),
+
+//   senderId: z.string().optional(),
+//   receiverId: z.string().optional(),
+
+  parcelType: z.enum(Parcel_Type).optional(),
+  weight: z.number()
+    .min(0.1, "Weight must be at least 0.1 kg")
+    .max(50, "Weight cannot exceed 50 kg")
+    .optional(),
+
+  description: z.string().max(500, "Description too long").optional(),
+
+  senderInfo: addressZodSchema.optional(),
+  receiverInfo: addressZodSchema.optional(),
+
+//   actualPickupDate: z.date().optional(),
+//   actualDeliveryDate: z.date().optional(),
+
+//   status: z.enum(Parcel_Status).optional(),
+//   trackingEvents: z.array(trackingEventZodSchema).optional(),
+
+//   assignedDeliveryPartner: z.string().optional(),
+
+//   parcelFee: parcelFeeZodSchema.optional(),
+  paymentMethod: z.enum(Payment_Method).optional(),
+//   paymentStatus: z.enum(Payment_Status).optional(),
+//   codAmount: z.number().min(0, "COD amount cannot be negative").optional(),
+
+//   cancellationReason: z.string().max(200, "Cancellation reason too long").optional(),
+//   cancelledBy: z.string().optional(),
+
+  // blockReason: z.string().max(200, "Block reason too long").optional(),
+  // blockedBy: z.string().optional(),
+});
