@@ -5,12 +5,13 @@
 import AppError from "../../errorHelpers/AppError"
 import { generatetrackingId } from "../../utils/genrateTrackingId"
 import { getTransactionId } from "../../utils/getTransactionId"
+import { QueryBuilder } from "../../utils/QueryBuilder"
 import { Payment } from "../payment/payment.model"
 import { ISSLCommerz } from "../sslCommerz/sslCommerz.interface"
 import { SSlService } from "../sslCommerz/sslCommerz.service"
 import { Role } from "../user/user.interface"
 import { User } from "../user/user.model"
-import { VALID_STATUS_TRANSITIONS } from "./parcel.constants"
+import { parcelSerachTable, VALID_STATUS_TRANSITIONS } from "./parcel.constants"
 import { IParcel, Parcel_Status, Payment_Method, Tracking_Event } from "./parcel.interface"
 import { Parcel } from "./parcel.model"
 
@@ -103,12 +104,24 @@ const createParcel = async (payload: Partial<IParcel>) => {
 
 
 
-const getAllParcel = async () => {
+const getAllParcel = async (query: Record<string, string>) => {
+    const queryBuilder = new QueryBuilder(Parcel.find({}), query)
 
 
-    const allParcel = await Parcel.find({})
-
-    return allParcel
+    const allParcel = await queryBuilder
+        .search(parcelSerachTable)
+        .filter()
+        .sort()
+        .fields()
+        .paginate()
+    const [data, meta] = await Promise.all([
+        allParcel.build(),
+        queryBuilder.getMeta()
+    ])
+    return {
+        data,
+        meta
+    }
 
 }
 
@@ -126,7 +139,7 @@ const getSingleParcelStatus = async (trackingId: string) => {
     }
 
 
-    return selectedParcelStatus?.status
+    return selectedParcelStatus.trackingEvents
 
 }
 
@@ -185,6 +198,9 @@ const assignParcelToDeliveryPerson = async (parcelId: string, deliveryPersonId: 
     }
     if (isPercelExist.status !== Parcel_Status.REQUESTED) {
         throw new AppError(400, `Cannot assign parcel with status ${isPercelExist.status}. Only REQUESTED parcels can be assigned.`);
+    }
+    if (isUpdaterExist.role !== Role.SUPER_ADMIN) {
+        throw new AppError(400, `Cannot assign parcel with status ${isPercelExist.status}. Only ADMIN  can be APPROVE the parcel.`);
     }
 
     const updatedTrackinEvents: Tracking_Event = {
@@ -265,6 +281,10 @@ const updateParcelStatus = async (parcelId: string, payload: Tracking_Event) => 
             throw new AppError(403, "Senders can only cancel parcels in REQUESTED status");
         }
     }
+    if (nextStatus === Parcel_Status.APPROVED) {
+        throw new AppError(403, "Parcels can only be approved via assignment, not direct update");
+    }
+
 
     parcel.status = nextStatus;
     parcel.trackingEvents.push(payload);

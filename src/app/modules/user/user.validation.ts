@@ -12,7 +12,7 @@ const AddressSchema = z.object({
 
 export const createUserZodSchema = z.object({
     name: z.string().min(2).max(50),
-    email: z.string().email(),
+    email: z.email(),
     password: z
         .string()
         .min(8, { message: "Password must be at least 8 characters long" })
@@ -45,3 +45,37 @@ export const createUserZodSchema = z.object({
 
 
 })
+
+
+export const updateUserZodSchema = z.object({
+  name: z.string().min(2).max(50).optional(),
+  password: z
+    .string()
+    .min(8, { message: "Password must be at least 8 characters long" })
+    .refine((val) => /[A-Z]/.test(val), {
+      message: "Password must include at least one uppercase letter",
+    })
+    .refine((val) => /[a-z]/.test(val), {
+      message: "Password must include at least one lowercase letter",
+    })
+    .refine((val) => /\d/.test(val), {
+      message: "Password must include at least one number",
+    })
+    .refine((val) => /[@$!%*?&]/.test(val), {
+      message: "Password must include at least one special character",
+    })
+    .optional(),
+  phone: z
+    .string()
+    .regex(/^(?:\+88|88)?01[3-9]\d{8}$/, {
+      message: "Invalid Bangladeshi phone number",
+    })
+    .optional(),
+
+  picture: z.string().optional(),
+  address: AddressSchema.optional(),
+  role: z.enum(Object.values(Role)).optional(),
+  isVerified: z.boolean().optional(),
+  isDeleted: z.boolean().optional(),
+  isActive: z.enum(Object.values(IsActive)).optional(),
+});

@@ -18,3 +18,7 @@ export const VALID_STATUS_TRANSITIONS: Record<Parcel_Status, Parcel_Status[]> = 
   [Parcel_Status.DELIVERED]: [], // Terminal
   [Parcel_Status.CANCELLED]: [] // Terminal
 };
+
+
+
+export const parcelSerachTable = ["status", "location"]

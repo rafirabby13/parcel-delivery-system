@@ -18,10 +18,15 @@ const createUser = async (payload: Partial<IUser>) => {
     }
 
     const hashedPassword = await bcryptjs.hash(password as string, Number(envVars.BCRYPT_SALT_ROUND))
-    // console.log(hashedPassword)
+    // console.log("payload ", rest.role)
 
-    const isPasswordMatched = await bcryptjs.compare(password as string, hashedPassword)
-    console.log(isPasswordMatched)
+    if (rest.role == Role.ADMIN || rest.role == Role.SUPER_ADMIN) {
+        throw new AppError(httpStatus.BAD_REQUEST, 'Insufficient privileges to assign ADMIN or SUPER_ADMIN role.');
+    }
+
+
+    // const isPasswordMatched = await bcryptjs.compare(password as string, hashedPassword)
+    // console.log(isPasswordMatched)
 
     const authProvider: IAuthProviders = {
         provider: "credentials",
@@ -47,6 +52,7 @@ const UpdateUser = async (userId: string, payload: Partial<IUser>, decodedtoken:
     // if (isUserExist.isDeleted || isUserExist.isActive == IsActive.BLOCKED ) {
     //     throw new AppError(httpStatus.FORBIDDEN, 'This user cant be updated .. ')
     // }
+    
 
     if (payload.role) {
         if (decodedtoken.role === Role.SENDER || decodedtoken.role == Role.RECEIVER || decodedtoken.role == Role.DELIVERY_PERSON) {
@@ -79,7 +85,7 @@ const UpdateUser = async (userId: string, payload: Partial<IUser>, decodedtoken:
 
 const getAllUser = async (role: string) => {
 
-     const query = role ? { role } : {}; 
+    const query = role ? { role } : {};
 
     // console.log(roleQuery)
     console.log("role", query)
