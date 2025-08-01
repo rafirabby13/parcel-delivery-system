@@ -9,10 +9,10 @@ import { QueryBuilder } from "../../utils/QueryBuilder"
 import { Payment } from "../payment/payment.model"
 import { ISSLCommerz } from "../sslCommerz/sslCommerz.interface"
 import { SSlService } from "../sslCommerz/sslCommerz.service"
-import { Role } from "../user/user.interface"
+import { IsActive, Role } from "../user/user.interface"
 import { User } from "../user/user.model"
 import { parcelSerachTable, VALID_STATUS_TRANSITIONS } from "./parcel.constants"
-import { IParcel, Parcel_Status, Payment_Method, Tracking_Event } from "./parcel.interface"
+import { IParcel, Parcel_Status, Payment_Method, Payment_Status, ReturnParcelPayload, Tracking_Event } from "./parcel.interface"
 import { Parcel } from "./parcel.model"
 
 
@@ -40,7 +40,11 @@ const createParcel = async (payload: Partial<IParcel>) => {
             throw new AppError(404, "Parcel is not created")
         }
         if (!user) {
-            throw new AppError(404, "Parcel is not found")
+            throw new AppError(404, "User is not found")
+        }
+
+        if (user.isActive == IsActive.BLOCKED) {
+            throw new AppError(404, "BLOCKED Users can not create percel")
         }
 
         const payment = await Payment.create([{
@@ -157,6 +161,10 @@ const updateParcel = async (parcelId: string, payload: Partial<IParcel>) => {
         throw new AppError(404, "Parcel not found");
     }
 
+    if (existingParcel.status == Parcel_Status.BLOCKED) {
+         throw new AppError(404, "Blocked Parcel can not be Edited");
+    }
+
     // Add audit information
     const updateData = {
         ...payload,
@@ -192,6 +200,9 @@ const assignParcelToDeliveryPerson = async (parcelId: string, deliveryPersonId: 
     if (!isUpdaterExist) {
         throw new AppError(404, "Updater not found");
     }
+    if (isPercelExist.status === Parcel_Status.BLOCKED) {
+        throw new AppError(400, `Cannot assign blocked parcel. Reason:  'Under investigation'`);
+    }
 
     if (isDeliverPersonExist.role !== Role.DELIVERY_PERSON) {
         throw new AppError(400, "Selected user is not a delivery person");
@@ -199,8 +210,15 @@ const assignParcelToDeliveryPerson = async (parcelId: string, deliveryPersonId: 
     if (isPercelExist.status !== Parcel_Status.REQUESTED) {
         throw new AppError(400, `Cannot assign parcel with status ${isPercelExist.status}. Only REQUESTED parcels can be assigned.`);
     }
-    if (isUpdaterExist.role !== Role.SUPER_ADMIN) {
+    if (isUpdaterExist.role !== Role.ADMIN) {
         throw new AppError(400, `Cannot assign parcel with status ${isPercelExist.status}. Only ADMIN  can be APPROVE the parcel.`);
+    }
+
+
+
+    // 2. Check if delivery person is blocked
+    if (isDeliverPersonExist.isActive === IsActive.BLOCKED) {
+        throw new AppError(400, "Cannot assign parcel to blocked delivery person");
     }
 
     const updatedTrackinEvents: Tracking_Event = {
@@ -237,6 +255,9 @@ const getAllParcelById = async (id: string, user: any) => {
     if (user.role == Role.SENDER) {
         query = { senderId: id }
     }
+    if (user.isActive == IsActive.BLOCKED) {
+        throw new AppError(403, "Access denied: You can cant view parcels")
+    }
 
     // const parcel = await Parcel.findById(parcelId)
 
@@ -263,6 +284,9 @@ const updateParcelStatus = async (parcelId: string, payload: Tracking_Event) => 
     if (user.role === Role.DELIVERY_PERSON && parcel.assignedDeliveryPartner?.toString() !== payload.updaterId) {
         throw new AppError(403, "You are not authorized to update this parcel's status");
     }
+    if (user.isActive === IsActive.BLOCKED) {
+        throw new AppError(403, "You are not authorized to update this parcel's status");
+    }
     const currentStatus = parcel.status;
     const nextStatus = payload.status;
     // console.log(currentStatus)
@@ -284,7 +308,9 @@ const updateParcelStatus = async (parcelId: string, payload: Tracking_Event) => 
     if (nextStatus === Parcel_Status.APPROVED) {
         throw new AppError(403, "Parcels can only be approved via assignment, not direct update");
     }
-
+    if (nextStatus === Parcel_Status.DELIVERED) {
+        throw new AppError(403, "Only receivers can confirm delivery. Use receiver confirmation endpoint.");
+    }
 
     parcel.status = nextStatus;
     parcel.trackingEvents.push(payload);
@@ -295,6 +321,404 @@ const updateParcelStatus = async (parcelId: string, payload: Tracking_Event) => 
 
 }
 
+
+const getIncomingParcels = async (receiverPhone: string) => {
+    if (!receiverPhone) {
+        throw new AppError(400, "Receiver phone number is required");
+    }
+
+    const incomingParcels = await Parcel.find({ 'receiverInfo.phone': receiverPhone })
+
+    return {
+        parcels: incomingParcels,
+        total: incomingParcels.length,
+        receiverInfo: {
+            phone: receiverPhone,
+            name: incomingParcels[0]?.receiverInfo?.name || "Unknown"
+        }
+    };
+};
+
+
+const confirmDelivery = async (trackingId: string, receiverPhone: string) => {
+    if (!trackingId || !receiverPhone) {
+        throw new AppError(400, "Parcel ID and receiver phone are required");
+    }
+    const parcel = await Parcel.findOne({ trackingId: trackingId });
+    // console.log({ parcel })
+    if (!parcel) {
+        throw new AppError(404, "Parcel not found");
+    }
+
+    // Verify this parcel belongs to the receiver
+
+    if (parcel.receiverInfo.phone !== receiverPhone) {
+        throw new AppError(403, "You are not authorized to confirm this delivery");
+    }
+
+    // Check if parcel is in deliverable state
+    if (parcel.status !== Parcel_Status.IN_TRANSIT && parcel.status !== Parcel_Status.DELIVERED) {
+        throw new AppError(400, `Cannot confirm delivery for parcel with status: ${parcel.status}`);
+    }
+
+    // Create confirmation tracking event
+    const confirmationEvent: Tracking_Event = {
+        updaterId: 'RECEIVER',
+        status: Parcel_Status.DELIVERED,
+        note: "Delivery confirmed by receiver",
+    };
+
+
+    // Update parcel with confirmation
+    const updatedParcel = await Parcel.findOneAndUpdate(
+        { trackingId },
+        {
+            status: Parcel_Status.DELIVERED,
+            actualDeliveryDate: new Date(),
+            $push: { trackingEvents: confirmationEvent }
+        },
+        { new: true, runValidators: true }
+    ).populate('senderId', 'name email phone');
+
+
+
+    return {
+        parcel: updatedParcel
+    };
+};
+
+
+const collectCODPayment = async (trackingId: string, deliveryPersonId: string) => {
+    if (!trackingId || !deliveryPersonId) {
+        throw new AppError(400, "Parcel ID and delivery person ID are required");
+    }
+
+    const [parcel, deliveryPerson] = await Promise.all([
+        Parcel.findOne({ trackingId: trackingId }),
+        User.findById(deliveryPersonId)
+    ]);
+
+    if (!parcel) {
+        throw new AppError(404, "Parcel not found");
+    }
+    if (!deliveryPerson) {
+        throw new AppError(404, "Delivery person not found");
+    }
+
+    // Validation checks
+    if (deliveryPerson.role !== Role.DELIVERY_PERSON) {
+        throw new AppError(403, "Only delivery persons can collect COD payments");
+    }
+    if (parcel.assignedDeliveryPartner?.toString() !== deliveryPersonId) {
+        throw new AppError(403, "You are not assigned to this parcel");
+    }
+    if (parcel.paymentMethod !== Payment_Method.COD) {
+        throw new AppError(400, "This parcel is not COD");
+    }
+    if (parcel.status !== Parcel_Status.DELIVERED) {
+        throw new AppError(400, "Parcel must be delivered before collecting COD payment");
+    }
+    if (parcel.paymentStatus === Payment_Status.PAID) {
+        throw new AppError(400, "COD payment already collected");
+    }
+
+    const session = await Parcel.startSession();
+    session.startTransaction();
+
+    try {
+        // Update payment record
+        await Payment.findOneAndUpdate(
+            { parcel: parcel._id },
+            {
+                paymentStatus: Payment_Status.PAID
+            },
+            { session }
+        );
+
+        // Update parcel payment status
+        const updatedParcel = await Parcel.findByIdAndUpdate(
+            { _id: parcel._id },
+            {
+                paymentStatus: Payment_Status.PAID,
+                $push: {
+                    trackingEvents: {
+                        updaterId: deliveryPersonId,
+                        status: Parcel_Status.DELIVERED, // Status stays same
+                        note: "COD payment collected successfully"
+                    }
+                }
+            },
+            { new: true, session }
+        );
+
+        await session.commitTransaction();
+
+        return {
+            success: true,
+            message: "COD payment collected successfully",
+            parcel: updatedParcel,
+            amount: parcel.parcelFee.totalFee
+        };
+
+    } catch (error) {
+        await session.abortTransaction();
+        throw error;
+    } finally {
+        await session.endSession();
+    }
+};
+
+
+const blockParcel = async (parcelId: string, adminId: string) => {
+    // Input validation
+    if (!parcelId || !adminId) {
+        throw new AppError(400, "Parcel ID, reason, and admin ID are required");
+    }
+
+    // Verify admin permissions (allow SYSTEM for auto-blocking)
+
+
+    const admin = await User.findById(adminId);
+    if (!admin || (admin.role !== Role.ADMIN && admin.role !== Role.SUPER_ADMIN)) {
+        throw new AppError(403, "Only admins can block parcels");
+    }
+
+
+    // Get parcel to block
+    const parcel = await Parcel.findById(parcelId)
+    if (!parcel) {
+        throw new AppError(404, "Parcel not found");
+    }
+
+    // Business logic validations
+    if (parcel.status === Parcel_Status.BLOCKED) {
+        throw new AppError(400, "Parcel is already blocked");
+    }
+
+    if (parcel.status === Parcel_Status.DELIVERED) {
+        throw new AppError(400, "Cannot block delivered parcels");
+    }
+
+    if (parcel.status === Parcel_Status.CANCELLED) {
+        throw new AppError(400, "Cannot block cancelled parcels");
+    }
+
+    // Start database transaction
+    const session = await Parcel.startSession();
+    session.startTransaction();
+
+    try {
+        // Create blocking tracking event
+        const blockingEvent: Tracking_Event = {
+            updaterId: adminId,
+            status: Parcel_Status.BLOCKED,
+            note: `Parcel blocked.`
+        };
+
+        // Update parcel with blocking information
+        const blockedParcel = await Parcel.findByIdAndUpdate(
+            parcelId,
+            {
+                status: Parcel_Status.BLOCKED,
+                $push: { trackingEvents: blockingEvent }
+            },
+            { new: true, runValidators: true, session }
+        ).populate('senderId', 'name email phone');
+
+        await session.commitTransaction();
+
+
+
+        return {
+            parcel: blockedParcel,
+        };
+
+    } catch (error) {
+        await session.abortTransaction();
+        throw error;
+    } finally {
+        await session.endSession();
+    }
+};
+const unblockParcel = async (parcelId: string, adminId: string) => {
+    // Input validation
+    if (!parcelId || !adminId) {
+        throw new AppError(400, "Parcel ID, reason, and admin ID are required");
+    }
+
+    // Verify admin permissions (allow SYSTEM for auto-blocking)
+
+
+    const admin = await User.findById(adminId);
+    if (!admin || (admin.role !== Role.ADMIN && admin.role !== Role.SUPER_ADMIN)) {
+        throw new AppError(403, "Only admins can block parcels");
+    }
+
+
+    // Get parcel to block
+    const parcel = await Parcel.findById(parcelId)
+    if (!parcel) {
+        throw new AppError(404, "Parcel not found");
+    }
+
+    if (parcel.status === Parcel_Status.CANCELLED) {
+        throw new AppError(400, "Cannot block cancelled parcels");
+    }
+
+    // Business logic validations
+    if (parcel.status !== Parcel_Status.BLOCKED) {
+        throw new AppError(400, "Parcel is already Unblocked");
+    }
+    const trackingEvents = parcel.trackingEvents || [];
+    let status: Parcel_Status = Parcel_Status.BLOCKED
+    // Start from the most recent and work backwards
+    for (let i = trackingEvents.length - 1; i >= 0; i--) {
+        const event = trackingEvents[i];
+
+        // Skip blocked status events
+        if (event.status == Parcel_Status.BLOCKED) {
+            status = trackingEvents[i-1].status
+        }
+    }
+
+    // Start database transaction
+    const session = await Parcel.startSession();
+    session.startTransaction();
+
+    try {
+        // Create blocking tracking event
+        const blockingEvent: Tracking_Event = {
+            updaterId: adminId,
+            status: status,
+            note: `Parcel blocked.`
+        };
+
+        // Update parcel with blocking information
+        const blockedParcel = await Parcel.findByIdAndUpdate(
+            parcelId,
+            {
+                status: status,
+                $push: { trackingEvents: blockingEvent }
+            },
+            { new: true, runValidators: true, session }
+        ).populate('senderId', 'name email phone');
+
+        await session.commitTransaction();
+
+
+
+        return {
+            parcel: blockedParcel,
+        };
+
+    } catch (error) {
+        await session.abortTransaction();
+        throw error;
+    } finally {
+        await session.endSession();
+    }
+};
+
+const returnParcel = async (parcelId: string, payload: ReturnParcelPayload) => {
+    if (!parcelId || !payload.returnReason || !payload.requestedBy) {
+        throw new AppError(400, "Parcel ID, return reason, and requester are required");
+    }
+
+    const [parcel, requester] = await Promise.all([
+        Parcel.findById(parcelId),
+        User.findById(payload.requestedBy)
+    ]);
+
+    if (!parcel) {
+        throw new AppError(404, "Parcel not found");
+    }
+    if (!requester) {
+        throw new AppError(404, "Requester not found");
+    }
+
+    // 🚨 BUSINESS RULES FOR RETURN
+
+    // Only certain statuses can be returned
+    const returnableStatuses = [
+        Parcel_Status.REQUESTED,
+        Parcel_Status.APPROVED,
+        Parcel_Status.PICKED_UP, 
+        Parcel_Status.IN_TRANSIT
+    ];
+    const parcelStatus: Parcel_Status = parcel.status as Parcel_Status
+
+    if (!returnableStatuses.includes(parcelStatus)) {
+        throw new AppError(400, `Cannot return parcel with status ${parcel.status}`);
+    }
+    if (parcel.paymentMethod == Payment_Method.PREPAID) {
+        throw new AppError(400, `Cannot return parcel with status `);
+    }
+
+    // Role-based return permissions
+    const canReturn = (
+        requester.role === Role.ADMIN || 
+        requester.role === Role.SUPER_ADMIN ||
+        (requester.role === Role.DELIVERY_PERSON && parcel.assignedDeliveryPartner?.toString() === payload.requestedBy) ||
+        (requester.role === Role.SENDER && parcel.senderId.toString() === payload.requestedBy)
+    );
+
+    if (!canReturn) {
+        throw new AppError(403, "You are not authorized to return this parcel");
+    }
+
+    const session = await Parcel.startSession();
+    session.startTransaction();
+
+    try {
+        
+
+
+            if (parcel.paymentMethod === Payment_Method.COD) {
+                await Payment.findOneAndUpdate(
+                    { parcel: parcelId },
+                    {
+                        paymentStatus: Payment_Status.CANCELLED,
+                        cancelledAt: new Date(),
+                        cancellationReason: `Return: ${payload.returnReason}`
+                    },
+                    { session }
+                );
+            }
+        
+
+        // Create return tracking event
+        const returnEvent: Tracking_Event = {
+            updaterId: payload.requestedBy,
+            status: Parcel_Status.RETURNED,
+            note: `Parcel returned. Type: ${payload.returnType}. Reason: ${payload.returnReason}`,
+        };
+
+        // Update parcel to RETURNED status
+        const returnedParcel = await Parcel.findByIdAndUpdate(
+            parcelId,
+            {
+                status: Parcel_Status.RETURNED,
+                paymentStatus: Payment_Status.REFUNDED,
+                $push: { trackingEvents: returnEvent }
+            },
+            { new: true, runValidators: true, session }
+        ).populate('senderId', 'name email phone');
+
+        await session.commitTransaction();
+
+
+        return {
+            parcel: returnedParcel,
+        };
+
+    } catch (error) {
+        await session.abortTransaction();
+        throw error;
+    } finally {
+        await session.endSession();
+    }
+};
+
 export const ParcelServices = {
     createParcel,
     getAllParcel,
@@ -302,5 +726,11 @@ export const ParcelServices = {
     updateParcel,
     assignParcelToDeliveryPerson,
     getAllParcelById,
-    updateParcelStatus
+    updateParcelStatus,
+    getIncomingParcels,
+    confirmDelivery,
+    collectCODPayment,
+    blockParcel,
+    unblockParcel,
+    returnParcel
 }

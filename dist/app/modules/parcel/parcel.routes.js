@@ -1,0 +1,18 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ParcelRoutes = void 0;
+const express_1 = require("express");
+const parcel_controller_1 = require("./parcel.controller");
+const checkAuth_1 = require("../../middlewares/checkAuth");
+const user_interface_1 = require("../user/user.interface");
+const validateRequest_1 = require("../../utils/validateRequest");
+const parcel_validation_1 = require("./parcel.validation");
+const router = (0, express_1.Router)();
+router.post("/create-parcel", (0, validateRequest_1.validateRequest)(parcel_validation_1.parcelZodSchema), (0, checkAuth_1.checkAuth)(user_interface_1.Role.SENDER), parcel_controller_1.ParcelController.createParcel);
+router.get("/all-parcel", (0, checkAuth_1.checkAuth)(user_interface_1.Role.ADMIN, user_interface_1.Role.SUPER_ADMIN), parcel_controller_1.ParcelController.getAllParcel);
+router.get("/status", (0, checkAuth_1.checkAuth)(...Object.values(user_interface_1.Role)), parcel_controller_1.ParcelController.getSingleParcelStatus);
+router.patch("/assign-delivery", (0, validateRequest_1.validateRequest)(parcel_validation_1.assignDeliverySchema), (0, checkAuth_1.checkAuth)(user_interface_1.Role.ADMIN, user_interface_1.Role.SUPER_ADMIN), parcel_controller_1.ParcelController.assignParcelToDeliveryPerson);
+router.get("/all-parcel/:id", (0, checkAuth_1.checkAuth)(...Object.values(user_interface_1.Role)), parcel_controller_1.ParcelController.getAllParcelById);
+router.post("/update/:parcelId", (0, validateRequest_1.validateRequest)(parcel_validation_1.parcelUpdateZodSchema), (0, checkAuth_1.checkAuth)(user_interface_1.Role.SENDER), parcel_controller_1.ParcelController.updateParcel);
+router.patch("/:id/update-status", (0, validateRequest_1.validateRequest)(parcel_validation_1.trackingEventSchema), (0, validateRequest_1.validateRequest)(parcel_validation_1.trackingEventZodSchema), (0, checkAuth_1.checkAuth)(user_interface_1.Role.ADMIN, user_interface_1.Role.SUPER_ADMIN, user_interface_1.Role.DELIVERY_PERSON, user_interface_1.Role.SENDER), parcel_controller_1.ParcelController.updateParcelStatus);
+exports.ParcelRoutes = router;

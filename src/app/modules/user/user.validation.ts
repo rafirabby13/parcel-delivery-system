@@ -79,3 +79,8 @@ export const updateUserZodSchema = z.object({
   isDeleted: z.boolean().optional(),
   isActive: z.enum(Object.values(IsActive)).optional(),
 });
+
+
+export const blockZodSchema = z.object({
+  adminId: z.string()
+})
