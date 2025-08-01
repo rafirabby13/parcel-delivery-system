@@ -94,6 +94,76 @@ const updateParcelStatus = (0, catchAsync_1.catchAsync)((req, res, next) => __aw
         data: updatedParcel
     });
 }));
+const getIncomingParcels = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const receiversPhoneNumber = req.query.phone;
+    // const payload = req.body
+    // console.log(req.user)
+    const updatedParcel = yield parcel_service_1.ParcelServices.getIncomingParcels(receiversPhoneNumber);
+    (0, sendResponse_1.sendResponse)(res, {
+        success: true,
+        statusCode: http_status_codes_1.default.CREATED,
+        message: "Parcel status updated successfully",
+        data: updatedParcel
+    });
+}));
+const confirmDelivery = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const { phone, trackingId } = req.query;
+    // const payload = req.body
+    const updatedParcel = yield parcel_service_1.ParcelServices.confirmDelivery(trackingId, phone);
+    (0, sendResponse_1.sendResponse)(res, {
+        success: true,
+        statusCode: http_status_codes_1.default.CREATED,
+        message: "Parcel status updated successfully",
+        data: updatedParcel
+    });
+}));
+const collectCODPayment = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const { deliveryPersonId, trackingId } = req.query;
+    // const payload = req.body
+    const updatedParcel = yield parcel_service_1.ParcelServices.collectCODPayment(trackingId, deliveryPersonId);
+    (0, sendResponse_1.sendResponse)(res, {
+        success: true,
+        statusCode: http_status_codes_1.default.CREATED,
+        message: "Parcel status updated successfully",
+        data: updatedParcel
+    });
+}));
+const blockParcel = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const parcelId = req.params.id;
+    const adminId = req.body.adminId;
+    // console.log(parcelId, adminId)
+    const updatedParcel = yield parcel_service_1.ParcelServices.blockParcel(parcelId, adminId);
+    (0, sendResponse_1.sendResponse)(res, {
+        success: true,
+        statusCode: http_status_codes_1.default.CREATED,
+        message: "Parcel Blocked successfully",
+        data: updatedParcel
+    });
+}));
+const unblockParcel = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const parcelId = req.params.id;
+    const adminId = req.body.adminId;
+    // console.log(parcelId, adminId)
+    const updatedParcel = yield parcel_service_1.ParcelServices.unblockParcel(parcelId, adminId);
+    (0, sendResponse_1.sendResponse)(res, {
+        success: true,
+        statusCode: http_status_codes_1.default.CREATED,
+        message: "Parcel UnBlocked successfully",
+        data: updatedParcel
+    });
+}));
+const returnParcel = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const parcelId = req.params.id;
+    const returnData = req.body;
+    console.log(parcelId, returnData);
+    const updatedParcel = yield parcel_service_1.ParcelServices.returnParcel(parcelId, returnData);
+    (0, sendResponse_1.sendResponse)(res, {
+        success: true,
+        statusCode: http_status_codes_1.default.CREATED,
+        message: "Parcel returned successfully",
+        data: updatedParcel
+    });
+}));
 exports.ParcelController = {
     createParcel,
     getAllParcel,
@@ -101,5 +171,11 @@ exports.ParcelController = {
     updateParcel,
     assignParcelToDeliveryPerson,
     getAllParcelById,
-    updateParcelStatus
+    updateParcelStatus,
+    getIncomingParcels,
+    confirmDelivery,
+    collectCODPayment,
+    blockParcel,
+    unblockParcel,
+    returnParcel
 };
