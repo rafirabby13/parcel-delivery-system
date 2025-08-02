@@ -6,6 +6,7 @@ import httpStatus from "http-status-codes"
 import { PaymentServices } from "./payment.service"
 import { envVars } from "../../config/env"
 import { sendOTP } from "../twilioSmsVeryfy/twilio"
+import { SSlService } from "../sslCommerz/sslCommerz.service"
 
 const successPayment = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
 
@@ -56,6 +57,24 @@ const cashOnDeliveryPaymentPayment = catchAsync(async (req: Request, res: Respon
     //    dfg
 
 })
+const validatePayment = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+
+
+    console.log("response", req.body)
+
+    await SSlService.validatePayment(req.body)
+
+
+    sendResponse(res, {
+        success: true,
+        statusCode: 200,
+        message: "Payment Validated successfully",
+        data: null
+    })
+
+    //    dfg
+
+})
 
 
 
@@ -64,5 +83,6 @@ export const PaymentControllers = {
     successPayment,
     failPayment,
     cancelPayment,
-    cashOnDeliveryPaymentPayment
+    cashOnDeliveryPaymentPayment,
+    validatePayment
 }

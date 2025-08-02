@@ -198,6 +198,19 @@ const returnParcel = catchAsync(async (req: Request, res: Response, next: NextFu
     })
 
 })
+const trackParcelByTrackingIdPublic = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+
+    const trackingId = req.query.trackingId
+
+    const trackParcelStatus = await ParcelServices.trackParcelByTrackingIdPublic(trackingId as string)
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.CREATED,
+        message: "Parcel Status Retieved successfully",
+        data: trackParcelStatus
+    })
+
+})
 
 
 
@@ -214,5 +227,6 @@ export const ParcelController = {
     collectCODPayment,
     blockParcel,
     unblockParcel,
-    returnParcel
+    returnParcel,
+    trackParcelByTrackingIdPublic
 }

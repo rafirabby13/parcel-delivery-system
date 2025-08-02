@@ -22,4 +22,5 @@ router.patch("/collect-cod", (0, checkAuth_1.checkAuth)(user_interface_1.Role.DE
 router.patch("/:id/block-parcel", (0, validateRequest_1.validateRequest)(user_validation_1.blockZodSchema), (0, checkAuth_1.checkAuth)(user_interface_1.Role.ADMIN, user_interface_1.Role.SUPER_ADMIN), parcel_controller_1.ParcelController.blockParcel);
 router.patch("/:id/unblock-parcel", (0, validateRequest_1.validateRequest)(user_validation_1.blockZodSchema), (0, checkAuth_1.checkAuth)(user_interface_1.Role.ADMIN, user_interface_1.Role.SUPER_ADMIN), parcel_controller_1.ParcelController.unblockParcel);
 router.post("/:id/return-parcel", (0, validateRequest_1.validateRequest)(parcel_validation_1.returnParcelZodSchema), (0, checkAuth_1.checkAuth)(user_interface_1.Role.ADMIN, user_interface_1.Role.SUPER_ADMIN, user_interface_1.Role.SENDER), parcel_controller_1.ParcelController.returnParcel);
+router.get("/track-public-status", parcel_controller_1.ParcelController.trackParcelByTrackingIdPublic);
 exports.ParcelRoutes = router;

@@ -10,4 +10,5 @@ router.post("/success", payment_controller_1.PaymentControllers.successPayment);
 router.post("/fail", payment_controller_1.PaymentControllers.failPayment);
 router.post("/cancel", payment_controller_1.PaymentControllers.cancelPayment);
 router.post("/cash-on-delivery", (0, checkAuth_1.checkAuth)(user_interface_1.Role.DELIVERY_PERSON, user_interface_1.Role.ADMIN), payment_controller_1.PaymentControllers.cashOnDeliveryPaymentPayment);
+router.post("/validate-payment", payment_controller_1.PaymentControllers.validatePayment);
 exports.PaymentRoutes = router;

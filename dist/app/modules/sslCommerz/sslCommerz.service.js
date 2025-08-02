@@ -16,6 +16,7 @@ exports.SSlService = void 0;
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const env_1 = require("../../config/env");
 const AppError_1 = __importDefault(require("../../errorHelpers/AppError"));
+const payment_model_1 = require("../payment/payment.model");
 const axios_1 = __importDefault(require("axios"));
 const sslPaymentInit = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -28,6 +29,7 @@ const sslPaymentInit = (payload) => __awaiter(void 0, void 0, void 0, function* 
             success_url: `${env_1.envVars.SSL.SSL_SUCCESS_BACKEND_URL}?transactionId=${payload.transactionId}`,
             fail_url: `${env_1.envVars.SSL.SSL_FAIL_BACKEND_URL}?transactionId=${payload.transactionId}`,
             cancel_url: `${env_1.envVars.SSL.SSL_CANCEL_BACKEND_URL}?transactionId=${payload.transactionId}`,
+            ipn_url: env_1.envVars.SSL.SSL_IPN_URL,
             cus_name: payload.name,
             cus_email: payload.email,
             cus_add1: payload.address,
@@ -66,6 +68,19 @@ const sslPaymentInit = (payload) => __awaiter(void 0, void 0, void 0, function* 
         throw new AppError_1.default(404, error.message);
     }
 });
+const validatePayment = (payload) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const response = yield (0, axios_1.default)({
+            method: "GET",
+            url: `${env_1.envVars.SSL.SSL_VALIDATION_API}?val_id=${payload.val_id}&store_id=${env_1.envVars.SSL.SSL_STORE_ID}&store_passwd=${env_1.envVars.SSL.SSL_STORE_PASS}`,
+        });
+        yield payment_model_1.Payment.updateOne({ transactionId: payload.tran_id }, { paymentGatewayData: response.data }, { runValidators: true });
+    }
+    catch (error) {
+        throw new AppError_1.default(401, `Payment validation Error ${error.message}`);
+    }
+});
 exports.SSlService = {
-    sslPaymentInit
+    sslPaymentInit,
+    validatePayment
 };
