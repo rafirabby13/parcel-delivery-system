@@ -22,6 +22,7 @@ router.patch("/collect-cod", checkAuth(Role.DELIVERY_PERSON), ParcelController.c
 router.patch("/:id/block-parcel", validateRequest(blockZodSchema),checkAuth(Role.ADMIN, Role.SUPER_ADMIN), ParcelController.blockParcel)
 router.patch("/:id/unblock-parcel", validateRequest(blockZodSchema),checkAuth(Role.ADMIN, Role.SUPER_ADMIN), ParcelController.unblockParcel)
 router.post("/:id/return-parcel", validateRequest(returnParcelZodSchema),checkAuth(Role.ADMIN, Role.SUPER_ADMIN, Role.SENDER), ParcelController.returnParcel)
+router.get("/track-public-status", ParcelController.trackParcelByTrackingIdPublic)
 
 
 export const ParcelRoutes = router

@@ -52,7 +52,7 @@ const createParcel = async (payload: Partial<IParcel>) => {
             parcel: parcel[0]._id,
             amount: parcel[0].parcelFee?.totalFee,
             paymentMethod: parcel[0].paymentMethod,
-            paymentStatus: parcel[0].paymentStatus
+            paymentStatus: parcel[0].paymentStatus,
         }], { session })
 
         const updatedParcel = await Parcel.findOneAndUpdate(
@@ -70,7 +70,7 @@ const createParcel = async (payload: Partial<IParcel>) => {
             amount: (payment[0] as any).amount,
             email: user?.email,
             name: user?.name,
-            phone: user?.phone
+            phone: user?.phone,
 
 
 
@@ -162,7 +162,7 @@ const updateParcel = async (parcelId: string, payload: Partial<IParcel>) => {
     }
 
     if (existingParcel.status == Parcel_Status.BLOCKED) {
-         throw new AppError(404, "Blocked Parcel can not be Edited");
+        throw new AppError(404, "Blocked Parcel can not be Edited");
     }
 
     // Add audit information
@@ -577,7 +577,7 @@ const unblockParcel = async (parcelId: string, adminId: string) => {
 
         // Skip blocked status events
         if (event.status == Parcel_Status.BLOCKED) {
-            status = trackingEvents[i-1].status
+            status = trackingEvents[i - 1].status
         }
     }
 
@@ -642,7 +642,7 @@ const returnParcel = async (parcelId: string, payload: ReturnParcelPayload) => {
     const returnableStatuses = [
         Parcel_Status.REQUESTED,
         Parcel_Status.APPROVED,
-        Parcel_Status.PICKED_UP, 
+        Parcel_Status.PICKED_UP,
         Parcel_Status.IN_TRANSIT
     ];
     const parcelStatus: Parcel_Status = parcel.status as Parcel_Status
@@ -650,13 +650,13 @@ const returnParcel = async (parcelId: string, payload: ReturnParcelPayload) => {
     if (!returnableStatuses.includes(parcelStatus)) {
         throw new AppError(400, `Cannot return parcel with status ${parcel.status}`);
     }
-    if (parcel.paymentMethod == Payment_Method.PREPAID) {
-        throw new AppError(400, `Cannot return parcel with status `);
-    }
+    // if (parcel.paymentMethod == Payment_Method.PREPAID) {
+    //     throw new AppError(400, `Cannot return parcel with status `);
+    // }
 
     // Role-based return permissions
     const canReturn = (
-        requester.role === Role.ADMIN || 
+        requester.role === Role.ADMIN ||
         requester.role === Role.SUPER_ADMIN ||
         (requester.role === Role.DELIVERY_PERSON && parcel.assignedDeliveryPartner?.toString() === payload.requestedBy) ||
         (requester.role === Role.SENDER && parcel.senderId.toString() === payload.requestedBy)
@@ -670,21 +670,31 @@ const returnParcel = async (parcelId: string, payload: ReturnParcelPayload) => {
     session.startTransaction();
 
     try {
-        
 
+        if (parcel.paymentMethod === Payment_Method.PREPAID) {
+            await Payment.findOneAndUpdate(
+                { parcel: parcelId },
+                {
+                    paymentStatus: Payment_Status.REFUNDED,
+                    refundedAt: new Date(),
+                    refundReason: `Return: ${payload.returnReason}`
+                },
+                { session }
+            );
+        }
 
-            if (parcel.paymentMethod === Payment_Method.COD) {
-                await Payment.findOneAndUpdate(
-                    { parcel: parcelId },
-                    {
-                        paymentStatus: Payment_Status.CANCELLED,
-                        cancelledAt: new Date(),
-                        cancellationReason: `Return: ${payload.returnReason}`
-                    },
-                    { session }
-                );
-            }
-        
+        if (parcel.paymentMethod === Payment_Method.COD) {
+            await Payment.findOneAndUpdate(
+                { parcel: parcelId },
+                {
+                    paymentStatus: Payment_Status.CANCELLED,
+                    cancelledAt: new Date(),
+                    cancellationReason: `Return: ${payload.returnReason}`
+                },
+                { session }
+            );
+        }
+
 
         // Create return tracking event
         const returnEvent: Tracking_Event = {
@@ -719,6 +729,32 @@ const returnParcel = async (parcelId: string, payload: ReturnParcelPayload) => {
     }
 };
 
+export const trackParcelByTrackingIdPublic = async (trackingId: string) => {
+    if (!trackingId) {
+        throw new AppError(404, 'TrackingId is not found');
+    }
+    const parcel = await Parcel.findOne({ trackingId })
+
+
+    if (!parcel) {
+        throw new AppError(404, 'Parcel not found');
+    }
+    const trackParcel = parcel.trackingEvents[parcel.trackingEvents.length - 1]
+    // console.log(parcel.trackingEvents[parcel.trackingEvents.length-1])
+    // console.log(parcel)
+    const data = {
+        TrackingId: trackingId,
+        CurrentStatus: trackParcel.status,
+        Sender: parcel.senderInfo.name,
+        PaymentMethod: parcel.paymentMethod
+
+    }
+
+    return {
+        parcelStatus: data
+    }
+};
+
 export const ParcelServices = {
     createParcel,
     getAllParcel,
@@ -732,5 +768,6 @@ export const ParcelServices = {
     collectCODPayment,
     blockParcel,
     unblockParcel,
-    returnParcel
+    returnParcel,
+    trackParcelByTrackingIdPublic
 }
