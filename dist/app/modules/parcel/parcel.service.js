@@ -14,7 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ParcelServices = void 0;
+exports.ParcelServices = exports.trackParcelByTrackingIdPublic = void 0;
 const AppError_1 = __importDefault(require("../../errorHelpers/AppError"));
 const genrateTrackingId_1 = require("../../utils/genrateTrackingId");
 const getTransactionId_1 = require("../../utils/getTransactionId");
@@ -52,7 +52,7 @@ const createParcel = (payload) => __awaiter(void 0, void 0, void 0, function* ()
                 parcel: parcel[0]._id,
                 amount: (_b = parcel[0].parcelFee) === null || _b === void 0 ? void 0 : _b.totalFee,
                 paymentMethod: parcel[0].paymentMethod,
-                paymentStatus: parcel[0].paymentStatus
+                paymentStatus: parcel[0].paymentStatus,
             }], { session });
         const updatedParcel = yield parcel_model_1.Parcel.findOneAndUpdate({ _id: parcel[0]._id }, { paymentId: payment[0]._id }, { new: true, runValidators: true, session })
             .populate("senderId", "email phone")
@@ -64,7 +64,7 @@ const createParcel = (payload) => __awaiter(void 0, void 0, void 0, function* ()
             amount: payment[0].amount,
             email: user === null || user === void 0 ? void 0 : user.email,
             name: user === null || user === void 0 ? void 0 : user.name,
-            phone: user === null || user === void 0 ? void 0 : user.phone
+            phone: user === null || user === void 0 ? void 0 : user.phone,
         };
         // console.log("sslpayload", sslPayload)
         let sslPayment;
@@ -494,9 +494,9 @@ const returnParcel = (parcelId, payload) => __awaiter(void 0, void 0, void 0, fu
     if (!returnableStatuses.includes(parcelStatus)) {
         throw new AppError_1.default(400, `Cannot return parcel with status ${parcel.status}`);
     }
-    if (parcel.paymentMethod == parcel_interface_1.Payment_Method.PREPAID) {
-        throw new AppError_1.default(400, `Cannot return parcel with status `);
-    }
+    // if (parcel.paymentMethod == Payment_Method.PREPAID) {
+    //     throw new AppError(400, `Cannot return parcel with status `);
+    // }
     // Role-based return permissions
     const canReturn = (requester.role === user_interface_1.Role.ADMIN ||
         requester.role === user_interface_1.Role.SUPER_ADMIN ||
@@ -508,6 +508,13 @@ const returnParcel = (parcelId, payload) => __awaiter(void 0, void 0, void 0, fu
     const session = yield parcel_model_1.Parcel.startSession();
     session.startTransaction();
     try {
+        if (parcel.paymentMethod === parcel_interface_1.Payment_Method.PREPAID) {
+            yield payment_model_1.Payment.findOneAndUpdate({ parcel: parcelId }, {
+                paymentStatus: parcel_interface_1.Payment_Status.REFUNDED,
+                refundedAt: new Date(),
+                refundReason: `Return: ${payload.returnReason}`
+            }, { session });
+        }
         if (parcel.paymentMethod === parcel_interface_1.Payment_Method.COD) {
             yield payment_model_1.Payment.findOneAndUpdate({ parcel: parcelId }, {
                 paymentStatus: parcel_interface_1.Payment_Status.CANCELLED,
@@ -540,6 +547,28 @@ const returnParcel = (parcelId, payload) => __awaiter(void 0, void 0, void 0, fu
         yield session.endSession();
     }
 });
+const trackParcelByTrackingIdPublic = (trackingId) => __awaiter(void 0, void 0, void 0, function* () {
+    if (!trackingId) {
+        throw new AppError_1.default(404, 'TrackingId is not found');
+    }
+    const parcel = yield parcel_model_1.Parcel.findOne({ trackingId });
+    if (!parcel) {
+        throw new AppError_1.default(404, 'Parcel not found');
+    }
+    const trackParcel = parcel.trackingEvents[parcel.trackingEvents.length - 1];
+    // console.log(parcel.trackingEvents[parcel.trackingEvents.length-1])
+    // console.log(parcel)
+    const data = {
+        TrackingId: trackingId,
+        CurrentStatus: trackParcel.status,
+        Sender: parcel.senderInfo.name,
+        PaymentMethod: parcel.paymentMethod
+    };
+    return {
+        parcelStatus: data
+    };
+});
+exports.trackParcelByTrackingIdPublic = trackParcelByTrackingIdPublic;
 exports.ParcelServices = {
     createParcel,
     getAllParcel,
@@ -553,5 +582,6 @@ exports.ParcelServices = {
     collectCODPayment,
     blockParcel,
     unblockParcel,
-    returnParcel
+    returnParcel,
+    trackParcelByTrackingIdPublic: exports.trackParcelByTrackingIdPublic
 };

@@ -60,14 +60,16 @@ const cashOnDeliveryPaymentPayment = catchAsync(async (req: Request, res: Respon
 const validatePayment = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
 
 
+    console.log("response", req.body)
 
-    const response = await SSlService.validatePayment(req.body)
+    await SSlService.validatePayment(req.body)
+
 
     sendResponse(res, {
         success: true,
         statusCode: 200,
         message: "Payment Validated successfully",
-        data: response
+        data: null
     })
 
     //    dfg

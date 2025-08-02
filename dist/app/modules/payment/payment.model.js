@@ -20,6 +20,7 @@ const paymentSchema = new mongoose_1.Schema({
     },
     paymentGatewayData: {
         type: mongoose_1.Schema.Types.Mixed, // Accepts any shape of object
+        default: null
     },
     paymentMethod: {
         type: String,

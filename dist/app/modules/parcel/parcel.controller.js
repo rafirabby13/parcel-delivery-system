@@ -164,6 +164,16 @@ const returnParcel = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(
         data: updatedParcel
     });
 }));
+const trackParcelByTrackingIdPublic = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const trackingId = req.query.trackingId;
+    const trackParcelStatus = yield parcel_service_1.ParcelServices.trackParcelByTrackingIdPublic(trackingId);
+    (0, sendResponse_1.sendResponse)(res, {
+        success: true,
+        statusCode: http_status_codes_1.default.CREATED,
+        message: "Parcel Status Retieved successfully",
+        data: trackParcelStatus
+    });
+}));
 exports.ParcelController = {
     createParcel,
     getAllParcel,
@@ -177,5 +187,6 @@ exports.ParcelController = {
     collectCODPayment,
     blockParcel,
     unblockParcel,
-    returnParcel
+    returnParcel,
+    trackParcelByTrackingIdPublic
 };

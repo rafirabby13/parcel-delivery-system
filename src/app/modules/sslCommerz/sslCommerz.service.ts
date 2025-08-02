@@ -68,8 +68,8 @@ const validatePayment = async (payload: any) => {
 
         })
 
-        await Payment.findOneAndUpdate(
-            { transactionId: payload.transactionId },
+        await Payment.updateOne(
+            { transactionId: payload.tran_id },
             { paymentGatewayData: response.data },
             { runValidators: true }
         )
