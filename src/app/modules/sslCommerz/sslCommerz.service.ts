@@ -60,6 +60,11 @@ const sslPaymentInit = async (payload: ISSLCommerz) => {
 }
 
 const validatePayment = async (payload: any) => {
+    console.log("🔍 Validation Request:", {
+            val_id: payload.val_id,
+            store_id: envVars.SSL.SSL_STORE_ID,
+            tran_id: payload.tran_id
+        });
 
     try {
         const response = await axios({
