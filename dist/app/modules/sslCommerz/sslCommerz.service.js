@@ -69,6 +69,11 @@ const sslPaymentInit = (payload) => __awaiter(void 0, void 0, void 0, function* 
     }
 });
 const validatePayment = (payload) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("🔍 Validation Request:", {
+        val_id: payload.val_id,
+        store_id: env_1.envVars.SSL.SSL_STORE_ID,
+        tran_id: payload.tran_id
+    });
     try {
         const response = yield (0, axios_1.default)({
             method: "GET",

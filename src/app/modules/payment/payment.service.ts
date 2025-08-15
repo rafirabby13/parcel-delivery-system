@@ -170,7 +170,7 @@ const cashOnDeliveryPaymentPayment = async (paymentId: string) => {
         session.endSession()
 
         return {
-            success: false,
+            success: true,
             message: "Payment completed Successfully "
         }
 
