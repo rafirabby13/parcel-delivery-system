@@ -48,13 +48,13 @@ const cashOnDeliveryPaymentPayment = (0, catchAsync_1.catchAsync)((req, res, nex
     //    dfg
 }));
 const validatePayment = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const response = yield sslCommerz_service_1.SSlService.validatePayment(req.body);
-    console.log("response", response);
+    console.log("response", req.body);
+    yield sslCommerz_service_1.SSlService.validatePayment(req.body);
     (0, sendResponse_1.sendResponse)(res, {
         success: true,
         statusCode: 200,
         message: "Payment Validated successfully",
-        data: response
+        data: null
     });
     //    dfg
 }));

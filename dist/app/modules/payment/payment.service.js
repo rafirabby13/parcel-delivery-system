@@ -104,7 +104,7 @@ const cashOnDeliveryPaymentPayment = (paymentId) => __awaiter(void 0, void 0, vo
         yield session.commitTransaction();
         session.endSession();
         return {
-            success: false,
+            success: true,
             message: "Payment completed Successfully "
         };
     }
