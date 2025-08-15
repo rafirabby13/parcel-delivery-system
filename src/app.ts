@@ -33,7 +33,10 @@ app.use("/api/v1", router)
 app.get("/", (req: Request, res: Response) => {
     res.status(200).json({ message: "Welcome to Parcel Delivery system server " })
 })
-
+app.get("/loaderio-d1f49ca29e5889d6eee5dc8cf3b0e5c5/", (req, res) => {
+  res.type("text/plain");
+  res.send("loaderio-d1f49ca29e5889d6eee5dc8cf3b0e5c5");
+});
 app.use(globalErrorhandlers)
 
 app.use(notFound)
