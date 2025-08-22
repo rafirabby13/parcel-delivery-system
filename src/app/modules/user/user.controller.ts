@@ -9,6 +9,7 @@ import { sendResponse } from "../../utils/sendResponse";
 import { verifyToken } from "../../utils/jwt";
 import { envVars } from "../../config/env";
 import { JwtPayload } from "jsonwebtoken";
+import { IUser } from "./user.interface";
 
 
 
@@ -57,6 +58,20 @@ const getAllUser = catchAsync(async (req: Request, res: Response, next: NextFunc
         success: true,
     })
 })
+const getMe = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+
+    const user = req.user as IUser
+    // console.log("user", user)
+    const users = await userServices.getMe(user )
+
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        message: " User fetched successfully",
+        data: users,
+        success: true,
+    })
+})
 const blockUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
 
     const userId = req.params.id
@@ -91,6 +106,7 @@ const unblockUser = catchAsync(async (req: Request, res: Response, next: NextFun
 export const userController = {
     createUser,
     getAllUser,
+    getMe,
     updateUser,
     blockUser,
     unblockUser

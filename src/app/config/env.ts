@@ -19,6 +19,13 @@ interface EnvConfig {
     EXPRESS_SESSION: string,
     GOOGLE_CALLBACK_URL: string,
     FRONTEND_URL: string,
+    EMAIL_SENDER: {
+        SMTP_USER: string;
+        SMTP_PASS: string;
+        SMTP_PORT: string;
+        SMTP_HOST: string;
+        SMTP_FROM: string;
+    };
     SSL: {
         SSL_STORE_ID: string,
         SSL_STORE_PASS: string,
@@ -36,15 +43,28 @@ interface EnvConfig {
         SSL_CANCEL_FRONTEND_URL: string,
         SSL_IPN_URL: string,
     },
+    REDIS_HOST: string;
+    REDIS_PORT: string;
+    REDIS_USERNAME: string;
+    REDIS_PASSWORD: string;
     TWILIO_SID: string,
     TWILIO_AUTH_TOKEN: string,
     TWILIO_NUMBER: string,
+
 }
 
 const laodEnvVariables = (): EnvConfig => {
 
     const requesredEnvVariables: string[] = ["PORT", "DB_URL", "NODE_ENV", "JWT_ACCESS_SECRET", "JWT_ACCESS_EXPIRES", "BCRYPT_SALT_ROUND", "SUPER_ADMIN_EMAIL", "SUPER_ADMIN_PASSWORD", "JWT_REFRESH_SECRET", "JWT_REFRESH_EXPIRES", "FRONTEND_URL", "GOOGLE_CALLBACK_URL", "EXPRESS_SESSION", "GOOGLE_CLIENT_SECRET", "GOOGLE_CLIENT_ID",
-        "SSL_STORE_ID", "SSL_STORE_PASS", "SSL_PAYMENT_API", "SSL_VALIDATION_API", "SSL_SUCCESS_BACKEND_URL", "SSL_FAIL_FRONTEND_URL", "SSL_CANCEL_FRONTEND_URL", "SSL_FAIL_BACKEND_URL", "SSL_SUCCESS_FRONTEND_URL", "SSL_CANCEL_BACKEND_URL", "TWILIO_SID", "TWILIO_AUTH_TOKEN", "TWILIO_NUMBER","SSL_IPN_URL"
+        "SSL_STORE_ID", "SSL_STORE_PASS", "SSL_PAYMENT_API", "SSL_VALIDATION_API", "SSL_SUCCESS_BACKEND_URL", "SSL_FAIL_FRONTEND_URL", "SSL_CANCEL_FRONTEND_URL", "SSL_FAIL_BACKEND_URL", "SSL_SUCCESS_FRONTEND_URL", "SSL_CANCEL_BACKEND_URL", "TWILIO_SID", "TWILIO_AUTH_TOKEN", "TWILIO_NUMBER", "SSL_IPN_URL", "SMTP_PASS",
+        "SMTP_PORT",
+        "SMTP_HOST",
+        "SMTP_USER",
+        "SMTP_FROM",
+        "REDIS_HOST",
+        "REDIS_PORT",
+        "REDIS_USERNAME",
+        "REDIS_PASSWORD",
     ]
 
     requesredEnvVariables.forEach(key => {
@@ -71,6 +91,13 @@ const laodEnvVariables = (): EnvConfig => {
         TWILIO_SID: process.env.TWILIO_SID as string,
         TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN as string,
         TWILIO_NUMBER: process.env.TWILIO_NUMBER as string,
+        EMAIL_SENDER: {
+            SMTP_USER: process.env.SMTP_USER as string,
+            SMTP_PASS: process.env.SMTP_PASS as string,
+            SMTP_PORT: process.env.SMTP_PORT as string,
+            SMTP_HOST: process.env.SMTP_HOST as string,
+            SMTP_FROM: process.env.SMTP_FROM as string,
+        },
         SSL: {
             SSL_STORE_ID: process.env.SSL_STORE_ID as string,
             SSL_STORE_PASS: process.env.SSL_STORE_PASS as string,
@@ -83,7 +110,11 @@ const laodEnvVariables = (): EnvConfig => {
             SSL_FAIL_FRONTEND_URL: process.env.SSL_FAIL_FRONTEND_URL as string,
             SSL_CANCEL_FRONTEND_URL: process.env.SSL_CANCEL_FRONTEND_URL as string,
             SSL_IPN_URL: process.env.SSL_IPN_URL as string,
-        }
+        },
+        REDIS_HOST: process.env.REDIS_HOST as string,
+        REDIS_PORT: process.env.REDIS_PORT as string,
+        REDIS_USERNAME: process.env.REDIS_USERNAME as string,
+        REDIS_PASSWORD: process.env.REDIS_PASSWORD as string,
 
 
     }

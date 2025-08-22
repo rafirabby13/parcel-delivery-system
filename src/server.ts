@@ -5,6 +5,7 @@ import dotenv from "dotenv"
 import app from "./app";
 import { envVars } from "./app/config/env";
 import { seedSuperAdmin } from "./app/utils/seedSuperAdmin";
+import { connecRedis } from "./app/config/redis.config";
 dotenv.config()
 let server: Server;
 
@@ -15,7 +16,7 @@ const startServer = async () => {
         await mongoose.connect(envVars.DB_URL)
 
         server = app.listen(envVars.PORT, () => {
-            console.log(`Server is running on port ${envVars.PORT} `)
+            console.log(`Parcel Server is running on port ${envVars.PORT} `)
         })
 
     } catch (error) {
@@ -24,6 +25,7 @@ const startServer = async () => {
 
 }
 (async () => {
+    await connecRedis()
     await startServer()
     await seedSuperAdmin()
 })()

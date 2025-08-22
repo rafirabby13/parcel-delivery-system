@@ -14,16 +14,19 @@ import { JwtPayload } from "jsonwebtoken"
 const credentialsLogin = async (payload: Partial<IUser>) => {
 
     const { email, password } = payload
-
     const isUserExist = await User.findOne({ email })
     if (!isUserExist) {
         throw new AppError(httpStatus.BAD_REQUEST, "User not found , please register first")
     }
-
+    
     const isPasswordMatched = await bcryptjs.compare(password as string, isUserExist.password as string)
-
+    
     if (!isPasswordMatched) {
         throw new AppError(httpStatus.BAD_REQUEST, "Password not matched , please check your password")
+    }
+    if (!isUserExist.isVerified) {
+        console.log(isUserExist.isVerified)
+        throw new AppError(httpStatus.BAD_REQUEST, "Not verified , please verify first")
     }
 
     const userToken = createUserToken(isUserExist)

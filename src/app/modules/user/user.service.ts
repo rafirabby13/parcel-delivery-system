@@ -99,6 +99,25 @@ const getAllUser = async (role: string) => {
         total
     }
 }
+const getMe = async (userr: IUser) => {
+
+    const query = userr ? { email: userr?.email } : {};
+
+    // console.log(roleQuery)
+    // console.log("role", query)
+
+
+    const user = await User.findOne(query).select("-password")
+     if (!user) {
+        throw new AppError(httpStatus.BAD_REQUEST, 'User dontt Exist')
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // const {password, ...rest} = sleecteduser
+
+    return {
+        user
+    }
+}
 
 
 const blockUser = async (userId: string, adminId: string) => {
@@ -229,6 +248,7 @@ const unblockUser = async (userId: string, adminId: string) => {
 export const userServices = {
     createUser,
     getAllUser,
+    getMe,
     UpdateUser,
     blockUser,
     unblockUser
