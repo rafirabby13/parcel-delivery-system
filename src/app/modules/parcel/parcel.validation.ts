@@ -131,3 +131,7 @@ export const returnParcelZodSchema = z.object({
   requestedBy: z.string().min(1, "Requested by is required"),
   returnLocation: z.string().optional()
 });
+export const cancelParcelZodSchema = z.object({
+  parcelId: z.string().min(1, "parcelId is required"),
+  updaterId: z.string().min(1, "Requested by is required")
+});

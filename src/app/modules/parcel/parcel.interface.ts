@@ -20,6 +20,7 @@ export enum Parcel_Status {
     PICKED_UP = "PICKED_UP",
     IN_TRANSIT = "IN_TRANSIT",
     DELIVERED = "DELIVERED",
+    CONFIRMED = "CONFIRMED",
     CANCELLED = "CANCELLED",
     BLOCKED = "BLOCKED",
     RETURNED = "RETURNED",

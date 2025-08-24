@@ -25,7 +25,7 @@ const credentialsLogin = async (payload: Partial<IUser>) => {
         throw new AppError(httpStatus.BAD_REQUEST, "Password not matched , please check your password")
     }
     if (!isUserExist.isVerified) {
-        console.log(isUserExist.isVerified)
+        // console.log(isUserExist.isVerified)
         throw new AppError(httpStatus.BAD_REQUEST, "Not verified , please verify first")
     }
 

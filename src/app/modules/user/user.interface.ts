@@ -46,3 +46,11 @@ export interface IUser {
 
 
 }
+
+export interface IUserToken{
+  userId: string
+  email: string
+  role: string
+  iat: number
+  exp: number
+}

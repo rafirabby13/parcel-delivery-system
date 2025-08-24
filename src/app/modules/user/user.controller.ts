@@ -9,7 +9,8 @@ import { sendResponse } from "../../utils/sendResponse";
 import { verifyToken } from "../../utils/jwt";
 import { envVars } from "../../config/env";
 import { JwtPayload } from "jsonwebtoken";
-import { IUser } from "./user.interface";
+import { IUser, IUserToken, Role } from "./user.interface";
+import { User } from "./user.model";
 
 
 
@@ -47,13 +48,43 @@ const updateUser = catchAsync(async (req: Request, res: Response, next: NextFunc
 
 const getAllUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
 
-    const role = req.query.role || ""
-    const users = await userServices.getAllUser(role as string)
+    // const role = req.query.role || ""
+    console.log(req.user)
+    const query = req.query
+    const user = req.user as IUserToken
+    // const role = user.role as string
+    // if (!user) {
+    //     throw new AppError(401, "User not authenticated")
+    // }
+
+    const users = await userServices.getAllUser(query as Record<string, string>,user.role)
 
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
         message: "All User fetched successfully",
+        // data: {},
+        data: users,
+        success: true,
+    })
+})
+const getAllUserByRole = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+
+    // const role = req.query.role || ""
+    // console.log(req.user)
+    // const user = req.user as IUserToken
+    // const role = user.role as string
+    // if (!user) {
+    //     throw new AppError(401, "User not authenticated")
+    // }
+
+    const users = await User.find({ role: Role.DELIVERY_PERSON })
+
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        message: "All DELIVERY_PERSON fetched successfully",
+        // data: {},
         data: users,
         success: true,
     })
@@ -62,7 +93,7 @@ const getMe = catchAsync(async (req: Request, res: Response, next: NextFunction)
 
     const user = req.user as IUser
     // console.log("user", user)
-    const users = await userServices.getMe(user )
+    const users = await userServices.getMe(user)
 
 
     sendResponse(res, {
@@ -75,9 +106,9 @@ const getMe = catchAsync(async (req: Request, res: Response, next: NextFunction)
 const blockUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
 
     const userId = req.params.id
-    const adminId = req.body.adminId
+    const user = req.user as IUserToken
 
-    const users = await userServices.blockUser(userId, adminId)
+    const users = await userServices.blockUser(userId, user)
 
 
     sendResponse(res, {
@@ -109,5 +140,6 @@ export const userController = {
     getMe,
     updateUser,
     blockUser,
-    unblockUser
+    unblockUser,
+    getAllUserByRole
 } 

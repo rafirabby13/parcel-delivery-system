@@ -1,10 +1,11 @@
 import AppError from "../../errorHelpers/AppError";
-import { IAuthProviders, IsActive, IUser, Role } from "./user.interface";
+import { IAuthProviders, IsActive, IUser, IUserToken, Role } from "./user.interface";
 import { User } from "./user.model";
 import httpStatus from "http-status-codes"
 import bcryptjs from "bcryptjs"
 import { envVars } from "../../config/env";
 import { JwtPayload } from "jsonwebtoken";
+import { QueryBuilder } from "../../utils/QueryBuilder";
 
 
 const createUser = async (payload: Partial<IUser>) => {
@@ -52,7 +53,7 @@ const UpdateUser = async (userId: string, payload: Partial<IUser>, decodedtoken:
     // if (isUserExist.isDeleted || isUserExist.isActive == IsActive.BLOCKED ) {
     //     throw new AppError(httpStatus.FORBIDDEN, 'This user cant be updated .. ')
     // }
-    
+
 
     if (payload.role) {
         if (decodedtoken.role === Role.SENDER || decodedtoken.role == Role.RECEIVER || decodedtoken.role == Role.DELIVERY_PERSON) {
@@ -83,12 +84,41 @@ const UpdateUser = async (userId: string, payload: Partial<IUser>, decodedtoken:
 }
 
 
-const getAllUser = async (role: string) => {
+const getAllUser = async (query: Record<string, string>,role: string) => {
+
+    // const query = role ? { role } : {};
+
+    // console.log(roleQuery)
+    // console.log("role", query)
+    if (role !== Role.SUPER_ADMIN) {
+        throw new AppError(httpStatus.FORBIDDEN, "UnAuthorized Access")
+    }
+
+    const queryBuilder = new QueryBuilder(User.find({}), query)
+
+    const allUsers = await queryBuilder
+            .filter()
+            .sort()
+            .fields()
+            .paginate()
+  const [users, meta] = await Promise.all([
+        allUsers.build(),
+        queryBuilder.getMeta()
+    ])
+    return {
+        users,
+        meta
+    }
+}
+const getAllUserByRole = async (role: string) => {
 
     const query = role ? { role } : {};
 
     // console.log(roleQuery)
     console.log("role", query)
+    if (role !== Role.SUPER_ADMIN) {
+        throw new AppError(httpStatus.FORBIDDEN, "UnAuthorized Access")
+    }
 
 
     const users = await User.find(query)
@@ -108,7 +138,7 @@ const getMe = async (userr: IUser) => {
 
 
     const user = await User.findOne(query).select("-password")
-     if (!user) {
+    if (!user) {
         throw new AppError(httpStatus.BAD_REQUEST, 'User dontt Exist')
     }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -120,14 +150,14 @@ const getMe = async (userr: IUser) => {
 }
 
 
-const blockUser = async (userId: string, adminId: string) => {
-    if (!userId  || !adminId) {
-        throw new AppError(400, "User ID, reason, and admin ID are required");
+const blockUser = async (userId: string, user: IUserToken) => {
+    if (!userId || !user) {
+        throw new AppError(400, "User ID, and admin are required");
     }
 
-    // Verify admin permissions
-    const admin = await User.findById(adminId);
-    if (!admin || (admin.role !== Role.ADMIN && admin.role !== Role.SUPER_ADMIN)) {
+
+
+    if (!user || (user.role !== Role.ADMIN && user.role !== Role.SUPER_ADMIN)) {
         throw new AppError(403, "Only admins can block users");
     }
 
@@ -138,20 +168,20 @@ const blockUser = async (userId: string, adminId: string) => {
     }
 
     // Prevent blocking other admins (unless super admin)
-    if ((userToBlock.role === Role.ADMIN || userToBlock.role === Role.SUPER_ADMIN) && 
-        admin.role !== Role.SUPER_ADMIN) {
+    if ((userToBlock.role === Role.ADMIN || userToBlock.role === Role.SUPER_ADMIN) &&
+        user.role !== Role.SUPER_ADMIN) {
         throw new AppError(403, "Cannot block admin users");
     }
 
     // Prevent self-blocking
-    if (userId === adminId) {
+    if (userId === user.userId) {
         throw new AppError(400, "Cannot block yourself");
     }
 
     // Check if already blocked
-    if (userToBlock.isActive === IsActive.BLOCKED) {
-        throw new AppError(400, "User is already blocked");
-    }
+    // if (userToBlock.isActive === IsActive.BLOCKED) {
+    //     throw new AppError(400, "User is already blocked");
+    // }
 
     const session = await User.startSession();
     session.startTransaction();
@@ -161,14 +191,14 @@ const blockUser = async (userId: string, adminId: string) => {
         const blockedUser = await User.findByIdAndUpdate(
             userId,
             {
-                isActive: IsActive.BLOCKED,
+                isActive: userToBlock.isActive === IsActive.BLOCKED ? IsActive.ACTIVE : IsActive.BLOCKED,
             },
             { new: true, session }
         );
 
         // Create block log entry (optional - for audit trail)
         // You might want to create a separate BlockLog model for this
-        
+
         await session.commitTransaction();
 
         return {
@@ -184,7 +214,7 @@ const blockUser = async (userId: string, adminId: string) => {
 };
 
 const unblockUser = async (userId: string, adminId: string) => {
-    if (!userId  || !adminId) {
+    if (!userId || !adminId) {
         throw new AppError(400, "User ID, reason, and admin ID are required");
     }
 
@@ -201,7 +231,7 @@ const unblockUser = async (userId: string, adminId: string) => {
     }
 
     // Prevent blocking other admins (unless super admin)
-    if ((userToUnBlock.role === Role.ADMIN || userToUnBlock.role === Role.SUPER_ADMIN) && 
+    if ((userToUnBlock.role === Role.ADMIN || userToUnBlock.role === Role.SUPER_ADMIN) &&
         admin.role !== Role.SUPER_ADMIN) {
         throw new AppError(403, "Cannot unblock admin users");
     }
@@ -231,7 +261,7 @@ const unblockUser = async (userId: string, adminId: string) => {
 
         // Create block log entry (optional - for audit trail)
         // You might want to create a separate BlockLog model for this
-        
+
         await session.commitTransaction();
 
         return {
@@ -251,5 +281,6 @@ export const userServices = {
     getMe,
     UpdateUser,
     blockUser,
-    unblockUser
+    unblockUser,
+    getAllUserByRole
 }

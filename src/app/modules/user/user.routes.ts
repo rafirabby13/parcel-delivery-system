@@ -14,9 +14,10 @@ const router = Router()
 
 router.post("/register", validateRequest(createUserZodSchema), userController.createUser)
 router.get("/all-users", checkAuth(Role.ADMIN, Role.SUPER_ADMIN), userController.getAllUser)
+router.get("/all-users-by-role", checkAuth(Role.ADMIN, Role.SUPER_ADMIN), userController.getAllUserByRole)
 router.get("/me", checkAuth(...Object.values(Role)), userController.getMe)
 router.patch("/:id", validateRequest(updateUserZodSchema), checkAuth(...Object.values(Role)), userController.updateUser)
-router.patch("/:id/block", validateRequest(blockZodSchema), checkAuth(Role.ADMIN, Role.SUPER_ADMIN), userController.blockUser)
+router.patch("/:id/block-unblock",  checkAuth(Role.ADMIN, Role.SUPER_ADMIN), userController.blockUser)
 router.patch("/:id/unblock", validateRequest(blockZodSchema), checkAuth(Role.ADMIN, Role.SUPER_ADMIN), userController.unblockUser)
 
 
