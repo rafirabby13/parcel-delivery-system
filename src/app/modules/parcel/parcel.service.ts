@@ -278,7 +278,7 @@ const getAllParcelById = async (id: string, user: any) => {
 const incomingParcelForReceiver = async (phone: string, user: any) => {
     const isUserExist = await User.findById(user.userId)
     console.log(phone)
-    
+
 
 
     if (user.role !== Role.RECEIVER) {
@@ -346,7 +346,7 @@ const updateParcelStatus = async (parcelId: string, payload: Tracking_Event) => 
     if (nextStatus === Parcel_Status.CONFIRMED) {
         throw new AppError(403, "Only receivers can confirm delivery. Use receiver confirmation endpoint.");
     }
-   
+
 
     parcel.status = nextStatus;
     parcel.trackingEvents.push(payload);
@@ -363,7 +363,7 @@ const getIncomingParcels = async (receiverPhone: string) => {
         throw new AppError(400, "Receiver phone number is required");
     }
 
-    const incomingParcels = await Parcel.find({ 'receiverInfo.phone': receiverPhone})
+    const incomingParcels = await Parcel.find({ 'receiverInfo.phone': receiverPhone })
 
     return {
         parcels: incomingParcels,
@@ -391,12 +391,15 @@ const confirmDelivery = async (trackingId: string, receiverPhone: string) => {
     if (parcel.receiverInfo.phone !== receiverPhone) {
         throw new AppError(403, "You are not authorized to confirm this delivery");
     }
+    if (parcel.paymentStatus !== "PAID") {
+        throw new AppError(403, "Pay First to confirm this delivery");
+    }
 
     // Check if parcel is in deliverable state
     // if ( parcel.status !== Parcel_Status.CONFIRMED) {
     //     throw new AppError(400, `Parcel Dilivery is already confirmed..`);
     // }
-    if ( parcel.status == Parcel_Status.CONFIRMED ||parcel.status !== Parcel_Status.DELIVERED ) {
+    if (parcel.status === Parcel_Status.CONFIRMED || parcel.status !== Parcel_Status.DELIVERED) {
         throw new AppError(400, `Cannot confirm delivery for parcel with status: ${parcel.status}, Only when it is delivered`);
     }
 
@@ -443,7 +446,9 @@ const collectCODPayment = async (trackingId: string, deliveryPersonId: string) =
     if (!deliveryPerson) {
         throw new AppError(404, "Delivery person not found");
     }
-
+    if (parcel.paymentStatus === Payment_Status.PAID) {
+        throw new AppError(400, "Payment already collected");
+    }
     // Validation checks
     if (deliveryPerson.role !== Role.DELIVERY_PERSON) {
         throw new AppError(403, "Only delivery persons can collect COD payments");
@@ -452,14 +457,12 @@ const collectCODPayment = async (trackingId: string, deliveryPersonId: string) =
         throw new AppError(403, "You are not assigned to this parcel");
     }
     if (parcel.paymentMethod !== Payment_Method.COD) {
-        throw new AppError(400, "This parcel is not COD");
+        throw new AppError(400, "This Payment Method is not COD");
     }
     if (parcel.status !== Parcel_Status.DELIVERED) {
         throw new AppError(400, "Parcel must be delivered before collecting COD payment");
     }
-    if (parcel.paymentStatus === Payment_Status.PAID) {
-        throw new AppError(400, "COD payment already collected");
-    }
+
 
     const session = await Parcel.startSession();
     session.startTransaction();

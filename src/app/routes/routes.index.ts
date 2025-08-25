@@ -4,6 +4,7 @@ import { AuthRouter } from "../modules/auth/auth.routes";
 import { ParcelRoutes } from "../modules/parcel/parcel.routes";
 import { PaymentRoutes } from "../modules/payment/payment.routes";
 import { OTPRoutes } from "../modules/OTP/otp.routes";
+import { StatsRoutes } from "../modules/stats/stats.routes";
 
 export const router = Router()
 
@@ -27,6 +28,10 @@ const moduleRoutes = [
     {
         path: "/otp",
         route: OTPRoutes
+    },
+    {
+        path: "/stats",
+        route: StatsRoutes
     }
 ]
 
