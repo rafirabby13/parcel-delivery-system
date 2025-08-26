@@ -8,6 +8,20 @@ import { envVars } from "../../config/env"
 import { sendOTP } from "../twilioSmsVeryfy/twilio"
 import { SSlService } from "../sslCommerz/sslCommerz.service"
 
+const initPayment = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+
+
+    const parcelId = req.params.parcelId 
+    console.log(parcelId, parcelId)
+    const result = await PaymentServices.initPayment(parcelId)
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.CREATED,
+        message: "Payment init successfully",
+        data: result
+    })
+})
 const successPayment = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
 
 
@@ -80,6 +94,7 @@ const validatePayment = catchAsync(async (req: Request, res: Response, next: Nex
 
 
 export const PaymentControllers = {
+    initPayment,
     successPayment,
     failPayment,
     cancelPayment,

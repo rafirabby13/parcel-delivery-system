@@ -19,6 +19,11 @@ const ParcelAddressSchema = new Schema({
         required: [true, 'Division is required'],
         trim: true
     },
+    district: {
+        type: String,
+        required: [true, 'District is required.......'],
+        trim: true
+    },
     city: {
         type: String,
         required: [true, 'City is required'],
@@ -40,7 +45,7 @@ const ParcelAddressSchema = new Schema({
 const TrackingEventSchema = new Schema({
     updaterId: {
         type: String,
-        required: true
+        required: [true, 'updaterID is required']
     },
     status: {
         type: String,
@@ -166,7 +171,11 @@ export const parcelSchema = new Schema<IParcel>({
         type: Schema.Types.ObjectId,
         ref: "Payment",
         default: null
-    }
+    },
+    image: {
+        type: [String],
+        default: []
+    },
 
 }, {
     timestamps: true,

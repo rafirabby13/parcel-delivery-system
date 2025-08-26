@@ -40,6 +40,7 @@ export interface Parcel_Address {
     name: string,
     phone: string,
     division: string;
+    district: string;
     city: string;
     area: string;
     detailAddress: string;
@@ -103,6 +104,7 @@ export interface IParcel {
 
     cancellationReason?: string;
     cancelledBy?: Types.ObjectId;
+    image?: string[]
 
     // blockReason?: string;
     // blockedBy?: Types.ObjectId;

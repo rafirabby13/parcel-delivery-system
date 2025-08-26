@@ -50,6 +50,11 @@ interface EnvConfig {
     TWILIO_SID: string,
     TWILIO_AUTH_TOKEN: string,
     TWILIO_NUMBER: string,
+     CLOUDINARY: {
+        CLOUDINARY_CLOUD_NAME: string;
+        CLOUDINARY_API_KEY: string;
+        CLOUDINARY_API_SECRET: string;
+    };
 
 }
 
@@ -65,6 +70,9 @@ const laodEnvVariables = (): EnvConfig => {
         "REDIS_PORT",
         "REDIS_USERNAME",
         "REDIS_PASSWORD",
+        "CLOUDINARY_CLOUD_NAME",
+        "CLOUDINARY_API_KEY",
+        "CLOUDINARY_API_SECRET"
     ]
 
     requesredEnvVariables.forEach(key => {
@@ -110,6 +118,11 @@ const laodEnvVariables = (): EnvConfig => {
             SSL_FAIL_FRONTEND_URL: process.env.SSL_FAIL_FRONTEND_URL as string,
             SSL_CANCEL_FRONTEND_URL: process.env.SSL_CANCEL_FRONTEND_URL as string,
             SSL_IPN_URL: process.env.SSL_IPN_URL as string,
+        },
+          CLOUDINARY: {
+            CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME as string,
+            CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY as string,
+            CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET as string,
         },
         REDIS_HOST: process.env.REDIS_HOST as string,
         REDIS_PORT: process.env.REDIS_PORT as string,

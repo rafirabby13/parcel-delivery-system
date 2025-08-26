@@ -228,6 +228,9 @@ const assignParcelToDeliveryPerson = async (parcelId: string, deliveryPersonId: 
     if (isDeliverPersonExist.isActive === IsActive.BLOCKED) {
         throw new AppError(400, "Cannot assign parcel to blocked delivery person");
     }
+    if (isPercelExist.paymentMethod === Payment_Method.PREPAID && isPercelExist.paymentStatus !== Payment_Status.PAID) {
+        throw new AppError(400, "Cannot assign parcel if prepaid but not paid");
+    }
 
     const updatedTrackinEvents: Tracking_Event = {
         updaterId: updaterId,
@@ -456,11 +459,23 @@ const collectCODPayment = async (trackingId: string, deliveryPersonId: string) =
     if (parcel.assignedDeliveryPartner?.toString() !== deliveryPersonId) {
         throw new AppError(403, "You are not assigned to this parcel");
     }
-    if (parcel.paymentMethod !== Payment_Method.COD) {
-        throw new AppError(400, "This Payment Method is not COD");
+    // if (parcel.paymentMethod !== Payment_Method.COD) {
+    //     throw new AppError(400, "This Payment Method is not COD");
+    // }
+    //  const collectableStatuses = [
+    //     Parcel_Status.APPROVED,
+    //     Parcel_Status.DELIVERED
+    // ];
+    // const parcelCurrentStatus: Parcel_Status = parcel.status as Parcel_Status
+
+    // if (!collectableStatuses.includes(parcelCurrentStatus)) {
+    //     throw new AppError(400, `Cannot Collect parcel Delivery amount with status ${parcel.status}`);
+    // }
+    if (parcel.paymentMethod === Payment_Method.COD && parcel.status !== Parcel_Status.DELIVERED  ) {
+        throw new AppError(400, "Parcel must be delivered  before collecting COD payment");
     }
-    if (parcel.status !== Parcel_Status.DELIVERED) {
-        throw new AppError(400, "Parcel must be delivered before collecting COD payment");
+    if (parcel.paymentMethod === Payment_Method.PREPAID && parcel.status !== Parcel_Status.APPROVED  ) {
+        throw new AppError(400, "Parcel must be in approved before collecting prepaid payment");
     }
 
 
@@ -485,7 +500,7 @@ const collectCODPayment = async (trackingId: string, deliveryPersonId: string) =
                 $push: {
                     trackingEvents: {
                         updaterId: deliveryPersonId,
-                        status: Parcel_Status.DELIVERED, // Status stays same
+                        status: parcel.status, // Status stays same
                         note: "COD payment collected successfully"
                     }
                 }

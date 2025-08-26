@@ -8,13 +8,26 @@ import { IParcel, ReturnParcelPayload } from "./parcel.interface";
 import { IUserToken } from "../user/user.interface";
 
 const createParcel = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-
-
-    const parcel = await ParcelServices.createParcel(req.body)
+// console.log("payload .............",{
+//         body: req.body,
+//         file: req.file
+//     })
+ const payload: IParcel={
+        ...req.body,
+        image: (req.file as Express.Multer.File).path
+    }
+    // console.log("payload .............",{
+    //     payload
+    // })
+    const parcel = await ParcelServices.createParcel(payload)
+    console.log(
+        parcel
+    )
     sendResponse(res, {
         success: true,
         statusCode: httpStatus.CREATED,
         message: "Parcel created successfully",
+        // data: {}
         data: parcel
     })
 
@@ -52,7 +65,7 @@ const updateParcel = catchAsync(async (req: Request, res: Response, next: NextFu
 
     const parcelId = req.params.parcelId
     const updateData = req.body
-    // console.log(parcelId)
+    console.log(".........",parcelId,updateData)
 
 
     const updatedParcel = await ParcelServices.updateParcel(parcelId as string, updateData)
@@ -144,9 +157,8 @@ const getIncomingParcels = catchAsync(async (req: Request, res: Response, next: 
 const confirmDelivery = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
 
     const { phone, trackingId } = req.query
-    // const payload = req.body
 
-
+// console.log(phone, trackingId )
     const updatedParcel = await ParcelServices.confirmDelivery(trackingId as string, phone as string)
     sendResponse(res, {
         success: true,

@@ -6,6 +6,7 @@ import { Role } from "../user/user.interface";
 const router = Router()
 
 
+router.post("/init-payment/:parcelId", PaymentControllers.initPayment)
 router.post("/success", PaymentControllers.successPayment)
 router.post("/fail", PaymentControllers.failPayment)
 router.post("/cancel", PaymentControllers.cancelPayment)

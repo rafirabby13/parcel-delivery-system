@@ -6,6 +6,7 @@ const addressZodSchema = z.object({
     name: z.string().min(1, "Name is required").max(100, "Name too long"),
     phone: z.string().regex(/^01[3-9]\d{8}$/, "Invalid Bangladesh phone number"),
     division: z.string().min(1, "Division is required"),
+    district: z.string().min(1, "District is required......"),
     city: z.string().min(1, "City is required"),
     area: z.string().min(1, "Area is required"),
     detailAddress: z.string().min(1, "Detail address is required").max(500, "Address too long")
