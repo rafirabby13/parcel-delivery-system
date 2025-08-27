@@ -30,6 +30,7 @@ const user_model_1 = require("./user.model");
 const http_status_codes_1 = __importDefault(require("http-status-codes"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const env_1 = require("../../config/env");
+const QueryBuilder_1 = require("../../utils/QueryBuilder");
 const createUser = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password } = payload, rest = __rest(payload, ["email", "password"]);
     const isUserExist = yield user_model_1.User.findOne({ email });
@@ -79,10 +80,35 @@ const UpdateUser = (userId, payload, decodedtoken) => __awaiter(void 0, void 0, 
     return newUpdatedUser;
     // return {}
 });
-const getAllUser = (role) => __awaiter(void 0, void 0, void 0, function* () {
+const getAllUser = (query, role) => __awaiter(void 0, void 0, void 0, function* () {
+    // const query = role ? { role } : {};
+    // console.log(roleQuery)
+    // console.log("role", query)
+    if (role !== user_interface_1.Role.SUPER_ADMIN) {
+        throw new AppError_1.default(http_status_codes_1.default.FORBIDDEN, "UnAuthorized Access");
+    }
+    const queryBuilder = new QueryBuilder_1.QueryBuilder(user_model_1.User.find({}), query);
+    const allUsers = yield queryBuilder
+        .filter()
+        .sort()
+        .fields()
+        .paginate();
+    const [users, meta] = yield Promise.all([
+        allUsers.build(),
+        queryBuilder.getMeta()
+    ]);
+    return {
+        users,
+        meta
+    };
+});
+const getAllUserByRole = (role) => __awaiter(void 0, void 0, void 0, function* () {
     const query = role ? { role } : {};
     // console.log(roleQuery)
     console.log("role", query);
+    if (role !== user_interface_1.Role.SUPER_ADMIN) {
+        throw new AppError_1.default(http_status_codes_1.default.FORBIDDEN, "UnAuthorized Access");
+    }
     const users = yield user_model_1.User.find(query);
     const total = yield user_model_1.User.countDocuments();
     return {
@@ -90,13 +116,25 @@ const getAllUser = (role) => __awaiter(void 0, void 0, void 0, function* () {
         total
     };
 });
-const blockUser = (userId, adminId) => __awaiter(void 0, void 0, void 0, function* () {
-    if (!userId || !adminId) {
-        throw new AppError_1.default(400, "User ID, reason, and admin ID are required");
+const getMe = (userr) => __awaiter(void 0, void 0, void 0, function* () {
+    const query = userr ? { email: userr === null || userr === void 0 ? void 0 : userr.email } : {};
+    // console.log(roleQuery)
+    // console.log("role", query)
+    const user = yield user_model_1.User.findOne(query).select("-password");
+    if (!user) {
+        throw new AppError_1.default(http_status_codes_1.default.BAD_REQUEST, 'User dontt Exist');
     }
-    // Verify admin permissions
-    const admin = yield user_model_1.User.findById(adminId);
-    if (!admin || (admin.role !== user_interface_1.Role.ADMIN && admin.role !== user_interface_1.Role.SUPER_ADMIN)) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // const {password, ...rest} = sleecteduser
+    return {
+        user
+    };
+});
+const blockUser = (userId, user) => __awaiter(void 0, void 0, void 0, function* () {
+    if (!userId || !user) {
+        throw new AppError_1.default(400, "User ID, and admin are required");
+    }
+    if (!user || (user.role !== user_interface_1.Role.ADMIN && user.role !== user_interface_1.Role.SUPER_ADMIN)) {
         throw new AppError_1.default(403, "Only admins can block users");
     }
     // Get user to block
@@ -106,23 +144,23 @@ const blockUser = (userId, adminId) => __awaiter(void 0, void 0, void 0, functio
     }
     // Prevent blocking other admins (unless super admin)
     if ((userToBlock.role === user_interface_1.Role.ADMIN || userToBlock.role === user_interface_1.Role.SUPER_ADMIN) &&
-        admin.role !== user_interface_1.Role.SUPER_ADMIN) {
+        user.role !== user_interface_1.Role.SUPER_ADMIN) {
         throw new AppError_1.default(403, "Cannot block admin users");
     }
     // Prevent self-blocking
-    if (userId === adminId) {
+    if (userId === user.userId) {
         throw new AppError_1.default(400, "Cannot block yourself");
     }
     // Check if already blocked
-    if (userToBlock.isActive === user_interface_1.IsActive.BLOCKED) {
-        throw new AppError_1.default(400, "User is already blocked");
-    }
+    // if (userToBlock.isActive === IsActive.BLOCKED) {
+    //     throw new AppError(400, "User is already blocked");
+    // }
     const session = yield user_model_1.User.startSession();
     session.startTransaction();
     try {
         // Block the user
         const blockedUser = yield user_model_1.User.findByIdAndUpdate(userId, {
-            isActive: user_interface_1.IsActive.BLOCKED,
+            isActive: userToBlock.isActive === user_interface_1.IsActive.BLOCKED ? user_interface_1.IsActive.ACTIVE : user_interface_1.IsActive.BLOCKED,
         }, { new: true, session });
         // Create block log entry (optional - for audit trail)
         // You might want to create a separate BlockLog model for this
@@ -191,7 +229,9 @@ const unblockUser = (userId, adminId) => __awaiter(void 0, void 0, void 0, funct
 exports.userServices = {
     createUser,
     getAllUser,
+    getMe,
     UpdateUser,
     blockUser,
-    unblockUser
+    unblockUser,
+    getAllUserByRole
 };

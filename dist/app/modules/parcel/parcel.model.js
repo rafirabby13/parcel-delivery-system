@@ -20,6 +20,11 @@ const ParcelAddressSchema = new mongoose_1.Schema({
         required: [true, 'Division is required'],
         trim: true
     },
+    district: {
+        type: String,
+        required: [true, 'District is required.......'],
+        trim: true
+    },
     city: {
         type: String,
         required: [true, 'City is required'],
@@ -40,7 +45,7 @@ const ParcelAddressSchema = new mongoose_1.Schema({
 const TrackingEventSchema = new mongoose_1.Schema({
     updaterId: {
         type: String,
-        required: true
+        required: [true, 'updaterID is required']
     },
     status: {
         type: String,
@@ -157,7 +162,11 @@ exports.parcelSchema = new mongoose_1.Schema({
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "Payment",
         default: null
-    }
+    },
+    image: {
+        type: [String],
+        default: []
+    },
 }, {
     timestamps: true,
     versionKey: false

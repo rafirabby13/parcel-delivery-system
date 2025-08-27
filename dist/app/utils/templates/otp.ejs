@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Your OTP Code</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f7f7f7;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        max-width: 480px;
+        margin: auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      h2 {
+        color: #333;
+      }
+      p {
+        color: #666;
+        font-size: 15px;
+      }
+      .otp-box {
+        font-size: 28px;
+        font-weight: bold;
+        background: #f0f4ff;
+        color: #2b5cff;
+        padding: 12px 20px;
+        border-radius: 6px;
+        display: inline-block;
+        letter-spacing: 6px;
+        margin-top: 10px;
+      }
+      .note {
+        font-size: 13px;
+        color: #999;
+        margin-top: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Email Verification</h2>
+      <p>Hello <%= name %>,</p>
+      <p>Your OTP (One-Time Password) for verification is:</p>
+      <div class="otp-box"><%= otp %></div>
+      <p>If you didn’t request this, you can safely ignore this email.</p>
+      <p>— Percelo Team</p>
+    </div>
+  </body>
+</html>

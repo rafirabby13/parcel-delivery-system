@@ -8,13 +8,28 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PaymentControllers = void 0;
 const catchAsync_1 = require("../../utils/catchAsync");
 const sendResponse_1 = require("../../utils/sendResponse");
+const http_status_codes_1 = __importDefault(require("http-status-codes"));
 const payment_service_1 = require("./payment.service");
 const env_1 = require("../../config/env");
 const sslCommerz_service_1 = require("../sslCommerz/sslCommerz.service");
+const initPayment = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const parcelId = req.params.parcelId;
+    console.log(parcelId, parcelId);
+    const result = yield payment_service_1.PaymentServices.initPayment(parcelId);
+    (0, sendResponse_1.sendResponse)(res, {
+        success: true,
+        statusCode: http_status_codes_1.default.CREATED,
+        message: "Payment init successfully",
+        data: result
+    });
+}));
 const successPayment = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const query = req.query;
     const result = yield payment_service_1.PaymentServices.successPayment(query);
@@ -59,6 +74,7 @@ const validatePayment = (0, catchAsync_1.catchAsync)((req, res, next) => __await
     //    dfg
 }));
 exports.PaymentControllers = {
+    initPayment,
     successPayment,
     failPayment,
     cancelPayment,

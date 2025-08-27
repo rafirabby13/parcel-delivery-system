@@ -8,7 +8,18 @@ const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const laodEnvVariables = () => {
     const requesredEnvVariables = ["PORT", "DB_URL", "NODE_ENV", "JWT_ACCESS_SECRET", "JWT_ACCESS_EXPIRES", "BCRYPT_SALT_ROUND", "SUPER_ADMIN_EMAIL", "SUPER_ADMIN_PASSWORD", "JWT_REFRESH_SECRET", "JWT_REFRESH_EXPIRES", "FRONTEND_URL", "GOOGLE_CALLBACK_URL", "EXPRESS_SESSION", "GOOGLE_CLIENT_SECRET", "GOOGLE_CLIENT_ID",
-        "SSL_STORE_ID", "SSL_STORE_PASS", "SSL_PAYMENT_API", "SSL_VALIDATION_API", "SSL_SUCCESS_BACKEND_URL", "SSL_FAIL_FRONTEND_URL", "SSL_CANCEL_FRONTEND_URL", "SSL_FAIL_BACKEND_URL", "SSL_SUCCESS_FRONTEND_URL", "SSL_CANCEL_BACKEND_URL", "TWILIO_SID", "TWILIO_AUTH_TOKEN", "TWILIO_NUMBER", "SSL_IPN_URL"
+        "SSL_STORE_ID", "SSL_STORE_PASS", "SSL_PAYMENT_API", "SSL_VALIDATION_API", "SSL_SUCCESS_BACKEND_URL", "SSL_FAIL_FRONTEND_URL", "SSL_CANCEL_FRONTEND_URL", "SSL_FAIL_BACKEND_URL", "SSL_SUCCESS_FRONTEND_URL", "SSL_CANCEL_BACKEND_URL", "TWILIO_SID", "TWILIO_AUTH_TOKEN", "TWILIO_NUMBER", "SSL_IPN_URL", "SMTP_PASS",
+        "SMTP_PORT",
+        "SMTP_HOST",
+        "SMTP_USER",
+        "SMTP_FROM",
+        "REDIS_HOST",
+        "REDIS_PORT",
+        "REDIS_USERNAME",
+        "REDIS_PASSWORD",
+        "CLOUDINARY_CLOUD_NAME",
+        "CLOUDINARY_API_KEY",
+        "CLOUDINARY_API_SECRET"
     ];
     requesredEnvVariables.forEach(key => {
         if (!process.env[key]) {
@@ -34,6 +45,13 @@ const laodEnvVariables = () => {
         TWILIO_SID: process.env.TWILIO_SID,
         TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
         TWILIO_NUMBER: process.env.TWILIO_NUMBER,
+        EMAIL_SENDER: {
+            SMTP_USER: process.env.SMTP_USER,
+            SMTP_PASS: process.env.SMTP_PASS,
+            SMTP_PORT: process.env.SMTP_PORT,
+            SMTP_HOST: process.env.SMTP_HOST,
+            SMTP_FROM: process.env.SMTP_FROM,
+        },
         SSL: {
             SSL_STORE_ID: process.env.SSL_STORE_ID,
             SSL_STORE_PASS: process.env.SSL_STORE_PASS,
@@ -46,7 +64,16 @@ const laodEnvVariables = () => {
             SSL_FAIL_FRONTEND_URL: process.env.SSL_FAIL_FRONTEND_URL,
             SSL_CANCEL_FRONTEND_URL: process.env.SSL_CANCEL_FRONTEND_URL,
             SSL_IPN_URL: process.env.SSL_IPN_URL,
-        }
+        },
+        CLOUDINARY: {
+            CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
+            CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
+            CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
+        },
+        REDIS_HOST: process.env.REDIS_HOST,
+        REDIS_PORT: process.env.REDIS_PORT,
+        REDIS_USERNAME: process.env.REDIS_USERNAME,
+        REDIS_PASSWORD: process.env.REDIS_PASSWORD,
     };
 };
 exports.envVars = laodEnvVariables();

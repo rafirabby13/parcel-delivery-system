@@ -17,6 +17,8 @@ const http_status_codes_1 = __importDefault(require("http-status-codes"));
 const user_service_1 = require("./user.service");
 const catchAsync_1 = require("../../utils/catchAsync");
 const sendResponse_1 = require("../../utils/sendResponse");
+const user_interface_1 = require("./user.interface");
+const user_model_1 = require("./user.model");
 const createUser = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const user = yield user_service_1.userServices.createUser(req.body);
     (0, sendResponse_1.sendResponse)(res, {
@@ -42,19 +44,55 @@ const updateUser = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(vo
     });
 }));
 const getAllUser = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const role = req.query.role || "";
-    const users = yield user_service_1.userServices.getAllUser(role);
+    // const role = req.query.role || ""
+    console.log(req.user);
+    const query = req.query;
+    const user = req.user;
+    // const role = user.role as string
+    // if (!user) {
+    //     throw new AppError(401, "User not authenticated")
+    // }
+    const users = yield user_service_1.userServices.getAllUser(query, user.role);
     (0, sendResponse_1.sendResponse)(res, {
         statusCode: http_status_codes_1.default.OK,
         message: "All User fetched successfully",
+        // data: {},
+        data: users,
+        success: true,
+    });
+}));
+const getAllUserByRole = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    // const role = req.query.role || ""
+    // console.log(req.user)
+    // const user = req.user as IUserToken
+    // const role = user.role as string
+    // if (!user) {
+    //     throw new AppError(401, "User not authenticated")
+    // }
+    const users = yield user_model_1.User.find({ role: user_interface_1.Role.DELIVERY_PERSON });
+    (0, sendResponse_1.sendResponse)(res, {
+        statusCode: http_status_codes_1.default.OK,
+        message: "All DELIVERY_PERSON fetched successfully",
+        // data: {},
+        data: users,
+        success: true,
+    });
+}));
+const getMe = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = req.user;
+    // console.log("user", user)
+    const users = yield user_service_1.userServices.getMe(user);
+    (0, sendResponse_1.sendResponse)(res, {
+        statusCode: http_status_codes_1.default.OK,
+        message: " User fetched successfully",
         data: users,
         success: true,
     });
 }));
 const blockUser = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const userId = req.params.id;
-    const adminId = req.body.adminId;
-    const users = yield user_service_1.userServices.blockUser(userId, adminId);
+    const user = req.user;
+    const users = yield user_service_1.userServices.blockUser(userId, user);
     (0, sendResponse_1.sendResponse)(res, {
         statusCode: http_status_codes_1.default.OK,
         message: "User blocked successfully",
@@ -76,7 +114,9 @@ const unblockUser = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(v
 exports.userController = {
     createUser,
     getAllUser,
+    getMe,
     updateUser,
     blockUser,
-    unblockUser
+    unblockUser,
+    getAllUserByRole
 };

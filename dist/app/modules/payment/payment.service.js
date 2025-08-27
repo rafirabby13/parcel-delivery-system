@@ -17,7 +17,34 @@ exports.PaymentServices = void 0;
 const AppError_1 = __importDefault(require("../../errorHelpers/AppError"));
 const parcel_interface_1 = require("../parcel/parcel.interface");
 const parcel_model_1 = require("../parcel/parcel.model");
+const sslCommerz_service_1 = require("../sslCommerz/sslCommerz.service");
+const user_model_1 = require("../user/user.model");
 const payment_model_1 = require("./payment.model");
+const http_status_codes_1 = __importDefault(require("http-status-codes"));
+const initPayment = (bookingId) => __awaiter(void 0, void 0, void 0, function* () {
+    const payment = yield payment_model_1.Payment.findOne({ parcel: bookingId });
+    if (!payment) {
+        throw new AppError_1.default(http_status_codes_1.default.NOT_FOUND, "Payment Not Found. You have not booked this tour");
+    }
+    const parcel = yield parcel_model_1.Parcel.findById(payment.parcel);
+    const sender = yield user_model_1.User.findById(parcel === null || parcel === void 0 ? void 0 : parcel.senderId);
+    const userAddress = (parcel === null || parcel === void 0 ? void 0 : parcel.senderInfo).detailAddress;
+    const userEmail = sender === null || sender === void 0 ? void 0 : sender.email;
+    const userPhoneNumber = (parcel === null || parcel === void 0 ? void 0 : parcel.senderInfo).phone;
+    const userName = sender === null || sender === void 0 ? void 0 : sender.name;
+    const sslPayload = {
+        address: userAddress,
+        email: userEmail,
+        phone: userPhoneNumber,
+        name: userName,
+        amount: payment.amount,
+        transactionId: payment.transactionId
+    };
+    const sslPayment = yield sslCommerz_service_1.SSlService.sslPaymentInit(sslPayload);
+    return {
+        paymentUrl: sslPayment.GatewayPageURL
+    };
+});
 const successPayment = (query) => __awaiter(void 0, void 0, void 0, function* () {
     const session = yield parcel_model_1.Parcel.startSession();
     session.startTransaction();
@@ -115,6 +142,7 @@ const cashOnDeliveryPaymentPayment = (paymentId) => __awaiter(void 0, void 0, vo
     }
 });
 exports.PaymentServices = {
+    initPayment,
     successPayment,
     failPayment,
     cancelPayment,

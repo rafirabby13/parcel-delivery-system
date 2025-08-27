@@ -63,13 +63,15 @@ const logout = catchAsync(async (req: Request, res: Response, next: NextFunction
 
     res.clearCookie("accessToken", {
         httpOnly: true,
-        secure: false,
-        sameSite: "lax"
+        secure: true,        // must be true in production (HTTPS)
+        sameSite: "none",    // allow cross-origin
+        path: "/",           // important to match the original cookie path
     })
     res.clearCookie("refreshToken", {
         httpOnly: true,
-        secure: false,
-        sameSite: "lax"
+        secure: true,
+        sameSite: "none",
+        path: "/",
     })
 
 
@@ -86,12 +88,12 @@ const logout = catchAsync(async (req: Request, res: Response, next: NextFunction
 const resetPassword = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
 
 
-        const decodedToken = req.user as JwtPayload
+    const decodedToken = req.user as JwtPayload
 
-        const newPassword = req.body.newPassword 
-        const oldPassword = req.body.oldPassword 
-        await AuthServices.resetPassword(oldPassword, newPassword , decodedToken)
-    
+    const newPassword = req.body.newPassword
+    const oldPassword = req.body.oldPassword
+    await AuthServices.resetPassword(oldPassword, newPassword, decodedToken)
+
 
     sendResponse(res, {
         success: true,

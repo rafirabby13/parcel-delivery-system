@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import express, { NextFunction, Request, Response } from "express"
 import cors from "cors"
 import { router } from "./app/routes/routes.index"
@@ -25,7 +24,7 @@ app.use(passport.session())
 app.use(express.urlencoded({extended: true}))
 app.set("trust proxy", 1)
 app.use(cors({
-    origin: [envVars.FRONTEND_URL,"http://localhost:3000" ],
+    origin: envVars.FRONTEND_URL,
     credentials: true
 }))
 app.use(cookieParser())
@@ -34,10 +33,7 @@ app.use("/api/v1", router)
 app.get("/", (req: Request, res: Response) => {
     res.status(200).json({ message: "Welcome to Parcel Delivery system server " })
 })
-app.get("/loaderio-d1f49ca29e5889d6eee5dc8cf3b0e5c5/", (req, res) => {
-  res.type("text/plain");
-  res.send("loaderio-d1f49ca29e5889d6eee5dc8cf3b0e5c5");
-});
+
 app.use(globalErrorhandlers)
 
 app.use(notFound)

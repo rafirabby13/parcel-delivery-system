@@ -14,7 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ParcelServices = exports.trackParcelByTrackingIdPublic = void 0;
+exports.ParcelServices = exports.trackParcelByTrackingIdPublic = exports.cancelParcel = void 0;
 const AppError_1 = __importDefault(require("../../errorHelpers/AppError"));
 const genrateTrackingId_1 = require("../../utils/genrateTrackingId");
 const getTransactionId_1 = require("../../utils/getTransactionId");
@@ -85,7 +85,14 @@ const createParcel = (payload) => __awaiter(void 0, void 0, void 0, function* ()
         throw error;
     }
 });
-const getAllParcel = (query) => __awaiter(void 0, void 0, void 0, function* () {
+const getAllParcel = (query, user) => __awaiter(void 0, void 0, void 0, function* () {
+    if (!user) {
+        throw new AppError_1.default(404, "User Not found, so parcel can't be accessed");
+    }
+    if (user.role !== user_interface_1.Role.ADMIN && user.role !== user_interface_1.Role.SUPER_ADMIN) {
+        throw new AppError_1.default(404, "Only admins can get all the data");
+    }
+    console.log(user);
     const queryBuilder = new QueryBuilder_1.QueryBuilder(parcel_model_1.Parcel.find({}), query);
     const allParcel = yield queryBuilder
         .search(parcel_constants_1.parcelSerachTable)
@@ -93,12 +100,12 @@ const getAllParcel = (query) => __awaiter(void 0, void 0, void 0, function* () {
         .sort()
         .fields()
         .paginate();
-    const [data, meta] = yield Promise.all([
+    const [parcels, meta] = yield Promise.all([
         allParcel.build(),
         queryBuilder.getMeta()
     ]);
     return {
-        data,
+        parcels,
         meta
     };
 });
@@ -154,12 +161,15 @@ const assignParcelToDeliveryPerson = (parcelId, deliveryPersonId, updaterId) => 
     if (isPercelExist.status !== parcel_interface_1.Parcel_Status.REQUESTED) {
         throw new AppError_1.default(400, `Cannot assign parcel with status ${isPercelExist.status}. Only REQUESTED parcels can be assigned.`);
     }
-    if (isUpdaterExist.role !== user_interface_1.Role.ADMIN) {
+    if (isUpdaterExist.role !== user_interface_1.Role.SUPER_ADMIN) {
         throw new AppError_1.default(400, `Cannot assign parcel with status ${isPercelExist.status}. Only ADMIN  can be APPROVE the parcel.`);
     }
     // 2. Check if delivery person is blocked
     if (isDeliverPersonExist.isActive === user_interface_1.IsActive.BLOCKED) {
         throw new AppError_1.default(400, "Cannot assign parcel to blocked delivery person");
+    }
+    if (isPercelExist.paymentMethod === parcel_interface_1.Payment_Method.PREPAID && isPercelExist.paymentStatus !== parcel_interface_1.Payment_Status.PAID) {
+        throw new AppError_1.default(400, "Cannot assign parcel if prepaid but not paid");
     }
     const updatedTrackinEvents = {
         updaterId: updaterId,
@@ -189,6 +199,24 @@ const getAllParcelById = (id, user) => __awaiter(void 0, void 0, void 0, functio
     if (user.isActive == user_interface_1.IsActive.BLOCKED) {
         throw new AppError_1.default(403, "Access denied: You can cant view parcels");
     }
+    // const parcel = await Parcel.findById(parcelId)
+    const updatedData = yield parcel_model_1.Parcel.find(query);
+    return updatedData;
+});
+const incomingParcelForReceiver = (phone, user) => __awaiter(void 0, void 0, void 0, function* () {
+    const isUserExist = yield user_model_1.User.findById(user.userId);
+    console.log(phone);
+    if (user.role !== user_interface_1.Role.RECEIVER) {
+        throw new AppError_1.default(403, "Access denied: You can only view your own parcels");
+    }
+    if (phone !== (isUserExist === null || isUserExist === void 0 ? void 0 : isUserExist.phone)) {
+        throw new AppError_1.default(403, "Access denied: You can only view your own parcels");
+    }
+    if (user.isActive == user_interface_1.IsActive.BLOCKED) {
+        throw new AppError_1.default(403, "Access denied: You can cant view parcels");
+    }
+    const query = { ["receiverInfo.phone"]: phone };
+    console.log(phone);
     // const parcel = await Parcel.findById(parcelId)
     const updatedData = yield parcel_model_1.Parcel.find(query);
     return updatedData;
@@ -233,7 +261,7 @@ const updateParcelStatus = (parcelId, payload) => __awaiter(void 0, void 0, void
     if (nextStatus === parcel_interface_1.Parcel_Status.APPROVED) {
         throw new AppError_1.default(403, "Parcels can only be approved via assignment, not direct update");
     }
-    if (nextStatus === parcel_interface_1.Parcel_Status.DELIVERED) {
+    if (nextStatus === parcel_interface_1.Parcel_Status.CONFIRMED) {
         throw new AppError_1.default(403, "Only receivers can confirm delivery. Use receiver confirmation endpoint.");
     }
     parcel.status = nextStatus;
@@ -269,19 +297,25 @@ const confirmDelivery = (trackingId, receiverPhone) => __awaiter(void 0, void 0,
     if (parcel.receiverInfo.phone !== receiverPhone) {
         throw new AppError_1.default(403, "You are not authorized to confirm this delivery");
     }
+    if (parcel.paymentStatus !== "PAID") {
+        throw new AppError_1.default(403, "Pay First to confirm this delivery");
+    }
     // Check if parcel is in deliverable state
-    if (parcel.status !== parcel_interface_1.Parcel_Status.IN_TRANSIT && parcel.status !== parcel_interface_1.Parcel_Status.DELIVERED) {
-        throw new AppError_1.default(400, `Cannot confirm delivery for parcel with status: ${parcel.status}`);
+    // if ( parcel.status !== Parcel_Status.CONFIRMED) {
+    //     throw new AppError(400, `Parcel Dilivery is already confirmed..`);
+    // }
+    if (parcel.status === parcel_interface_1.Parcel_Status.CONFIRMED || parcel.status !== parcel_interface_1.Parcel_Status.DELIVERED) {
+        throw new AppError_1.default(400, `Cannot confirm delivery for parcel with status: ${parcel.status}, Only when it is delivered`);
     }
     // Create confirmation tracking event
     const confirmationEvent = {
         updaterId: 'RECEIVER',
-        status: parcel_interface_1.Parcel_Status.DELIVERED,
+        status: parcel_interface_1.Parcel_Status.CONFIRMED,
         note: "Delivery confirmed by receiver",
     };
     // Update parcel with confirmation
     const updatedParcel = yield parcel_model_1.Parcel.findOneAndUpdate({ trackingId }, {
-        status: parcel_interface_1.Parcel_Status.DELIVERED,
+        status: parcel_interface_1.Parcel_Status.CONFIRMED,
         actualDeliveryDate: new Date(),
         $push: { trackingEvents: confirmationEvent }
     }, { new: true, runValidators: true }).populate('senderId', 'name email phone');
@@ -304,6 +338,9 @@ const collectCODPayment = (trackingId, deliveryPersonId) => __awaiter(void 0, vo
     if (!deliveryPerson) {
         throw new AppError_1.default(404, "Delivery person not found");
     }
+    if (parcel.paymentStatus === parcel_interface_1.Payment_Status.PAID) {
+        throw new AppError_1.default(400, "Payment already collected");
+    }
     // Validation checks
     if (deliveryPerson.role !== user_interface_1.Role.DELIVERY_PERSON) {
         throw new AppError_1.default(403, "Only delivery persons can collect COD payments");
@@ -311,14 +348,22 @@ const collectCODPayment = (trackingId, deliveryPersonId) => __awaiter(void 0, vo
     if (((_a = parcel.assignedDeliveryPartner) === null || _a === void 0 ? void 0 : _a.toString()) !== deliveryPersonId) {
         throw new AppError_1.default(403, "You are not assigned to this parcel");
     }
-    if (parcel.paymentMethod !== parcel_interface_1.Payment_Method.COD) {
-        throw new AppError_1.default(400, "This parcel is not COD");
+    // if (parcel.paymentMethod !== Payment_Method.COD) {
+    //     throw new AppError(400, "This Payment Method is not COD");
+    // }
+    //  const collectableStatuses = [
+    //     Parcel_Status.APPROVED,
+    //     Parcel_Status.DELIVERED
+    // ];
+    // const parcelCurrentStatus: Parcel_Status = parcel.status as Parcel_Status
+    // if (!collectableStatuses.includes(parcelCurrentStatus)) {
+    //     throw new AppError(400, `Cannot Collect parcel Delivery amount with status ${parcel.status}`);
+    // }
+    if (parcel.paymentMethod === parcel_interface_1.Payment_Method.COD && parcel.status !== parcel_interface_1.Parcel_Status.DELIVERED) {
+        throw new AppError_1.default(400, "Parcel must be delivered  before collecting COD payment");
     }
-    if (parcel.status !== parcel_interface_1.Parcel_Status.DELIVERED) {
-        throw new AppError_1.default(400, "Parcel must be delivered before collecting COD payment");
-    }
-    if (parcel.paymentStatus === parcel_interface_1.Payment_Status.PAID) {
-        throw new AppError_1.default(400, "COD payment already collected");
+    if (parcel.paymentMethod === parcel_interface_1.Payment_Method.PREPAID && parcel.status !== parcel_interface_1.Parcel_Status.APPROVED) {
+        throw new AppError_1.default(400, "Parcel must be in approved before collecting prepaid payment");
     }
     const session = yield parcel_model_1.Parcel.startSession();
     session.startTransaction();
@@ -333,7 +378,7 @@ const collectCODPayment = (trackingId, deliveryPersonId) => __awaiter(void 0, vo
             $push: {
                 trackingEvents: {
                     updaterId: deliveryPersonId,
-                    status: parcel_interface_1.Parcel_Status.DELIVERED, // Status stays same
+                    status: parcel.status, // Status stays same
                     note: "COD payment collected successfully"
                 }
             }
@@ -354,13 +399,12 @@ const collectCODPayment = (trackingId, deliveryPersonId) => __awaiter(void 0, vo
         yield session.endSession();
     }
 });
-const blockParcel = (parcelId, adminId) => __awaiter(void 0, void 0, void 0, function* () {
+const blockParcel = (parcelId, admin) => __awaiter(void 0, void 0, void 0, function* () {
     // Input validation
-    if (!parcelId || !adminId) {
+    if (!parcelId || !admin) {
         throw new AppError_1.default(400, "Parcel ID, reason, and admin ID are required");
     }
     // Verify admin permissions (allow SYSTEM for auto-blocking)
-    const admin = yield user_model_1.User.findById(adminId);
     if (!admin || (admin.role !== user_interface_1.Role.ADMIN && admin.role !== user_interface_1.Role.SUPER_ADMIN)) {
         throw new AppError_1.default(403, "Only admins can block parcels");
     }
@@ -370,8 +414,19 @@ const blockParcel = (parcelId, adminId) => __awaiter(void 0, void 0, void 0, fun
         throw new AppError_1.default(404, "Parcel not found");
     }
     // Business logic validations
-    if (parcel.status === parcel_interface_1.Parcel_Status.BLOCKED) {
-        throw new AppError_1.default(400, "Parcel is already blocked");
+    // if (parcel.status === Parcel_Status.BLOCKED) {
+    //     throw new AppError(400, "Parcel is already blocked");
+    // }
+    const blockableStatuses = [
+        parcel_interface_1.Parcel_Status.REQUESTED,
+        parcel_interface_1.Parcel_Status.APPROVED,
+        parcel_interface_1.Parcel_Status.PICKED_UP,
+        parcel_interface_1.Parcel_Status.IN_TRANSIT,
+        parcel_interface_1.Parcel_Status.BLOCKED,
+    ];
+    const parcelCurrentStatus = parcel.status;
+    if (!blockableStatuses.includes(parcelCurrentStatus)) {
+        throw new AppError_1.default(400, `Cannot block parcel with status ${parcel.status}`);
     }
     if (parcel.status === parcel_interface_1.Parcel_Status.DELIVERED) {
         throw new AppError_1.default(400, "Cannot block delivered parcels");
@@ -379,19 +434,34 @@ const blockParcel = (parcelId, adminId) => __awaiter(void 0, void 0, void 0, fun
     if (parcel.status === parcel_interface_1.Parcel_Status.CANCELLED) {
         throw new AppError_1.default(400, "Cannot block cancelled parcels");
     }
+    const trackingEvents = parcel.trackingEvents || [];
+    let parcelStatus;
+    // Start from the most recent and work backwards
+    const event = trackingEvents[trackingEvents.length - 1];
+    // console.log(event)
+    // Skip blocked status events
+    if (event.status == parcel_interface_1.Parcel_Status.BLOCKED) {
+        parcelStatus = trackingEvents[trackingEvents.length - 2].status;
+    }
+    if (event.status !== parcel_interface_1.Parcel_Status.BLOCKED) {
+        parcelStatus = parcel_interface_1.Parcel_Status.BLOCKED;
+    }
+    if (!parcelStatus) {
+        throw new AppError_1.default(401, "Could not determine parcel status");
+    }
     // Start database transaction
     const session = yield parcel_model_1.Parcel.startSession();
     session.startTransaction();
     try {
         // Create blocking tracking event
         const blockingEvent = {
-            updaterId: adminId,
-            status: parcel_interface_1.Parcel_Status.BLOCKED,
-            note: `Parcel blocked.`
+            updaterId: admin.userId,
+            status: parcelStatus
         };
+        // console.log("parcelStatus", parcelStatus)
         // Update parcel with blocking information
         const blockedParcel = yield parcel_model_1.Parcel.findByIdAndUpdate(parcelId, {
-            status: parcel_interface_1.Parcel_Status.BLOCKED,
+            status: parcelStatus,
             $push: { trackingEvents: blockingEvent }
         }, { new: true, runValidators: true, session }).populate('senderId', 'name email phone');
         yield session.commitTransaction();
@@ -487,8 +557,8 @@ const returnParcel = (parcelId, payload) => __awaiter(void 0, void 0, void 0, fu
     const returnableStatuses = [
         parcel_interface_1.Parcel_Status.REQUESTED,
         parcel_interface_1.Parcel_Status.APPROVED,
-        parcel_interface_1.Parcel_Status.PICKED_UP,
-        parcel_interface_1.Parcel_Status.IN_TRANSIT
+        // Parcel_Status.PICKED_UP,
+        // Parcel_Status.IN_TRANSIT
     ];
     const parcelStatus = parcel.status;
     if (!returnableStatuses.includes(parcelStatus)) {
@@ -547,6 +617,38 @@ const returnParcel = (parcelId, payload) => __awaiter(void 0, void 0, void 0, fu
         yield session.endSession();
     }
 });
+const cancelParcel = (parcelId, updaterId) => __awaiter(void 0, void 0, void 0, function* () {
+    if (!parcelId) {
+        throw new AppError_1.default(404, 'parcelId is not found');
+    }
+    const parcel = yield parcel_model_1.Parcel.findById(parcelId);
+    if (!parcel) {
+        throw new AppError_1.default(404, 'Parcel not found');
+    }
+    const returnableStatuses = [
+        parcel_interface_1.Parcel_Status.REQUESTED,
+        parcel_interface_1.Parcel_Status.APPROVED,
+        // Parcel_Status.PICKED_UP,
+        // Parcel_Status.IN_TRANSIT
+    ];
+    const parcelStatus = parcel.status;
+    if (!returnableStatuses.includes(parcelStatus)) {
+        throw new AppError_1.default(400, `Cannot return parcel with status ${parcel.status}`);
+    }
+    const cancelEvent = {
+        updaterId: updaterId,
+        status: parcel_interface_1.Parcel_Status.CANCELLED,
+    };
+    const updatedParcel = yield parcel_model_1.Parcel.findOneAndUpdate({ _id: parcelId }, {
+        status: parcel_interface_1.Parcel_Status.CANCELLED,
+        paymentStatus: parcel_interface_1.Payment_Status.REFUNDED,
+        $push: { trackingEvents: cancelEvent }
+    });
+    return {
+        updatedParcel
+    };
+});
+exports.cancelParcel = cancelParcel;
 const trackParcelByTrackingIdPublic = (trackingId) => __awaiter(void 0, void 0, void 0, function* () {
     if (!trackingId) {
         throw new AppError_1.default(404, 'TrackingId is not found');
@@ -558,14 +660,14 @@ const trackParcelByTrackingIdPublic = (trackingId) => __awaiter(void 0, void 0, 
     const trackParcel = parcel.trackingEvents[parcel.trackingEvents.length - 1];
     // console.log(parcel.trackingEvents[parcel.trackingEvents.length-1])
     // console.log(parcel)
-    const data = {
-        TrackingId: trackingId,
-        CurrentStatus: trackParcel.status,
-        Sender: parcel.senderInfo.name,
-        PaymentMethod: parcel.paymentMethod
-    };
+    // const data = {
+    //     TrackingId: trackingId,
+    //     CurrentStatus: trackParcel.status,
+    //     Sender: parcel.senderInfo.name,
+    //     PaymentMethod: parcel.paymentMethod
+    // }
     return {
-        parcelStatus: data
+        parcel: parcel.trackingEvents
     };
 });
 exports.trackParcelByTrackingIdPublic = trackParcelByTrackingIdPublic;
@@ -583,5 +685,7 @@ exports.ParcelServices = {
     blockParcel,
     unblockParcel,
     returnParcel,
+    cancelParcel: exports.cancelParcel,
+    incomingParcelForReceiver,
     trackParcelByTrackingIdPublic: exports.trackParcelByTrackingIdPublic
 };

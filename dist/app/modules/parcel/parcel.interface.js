@@ -16,6 +16,7 @@ var Parcel_Status;
     Parcel_Status["PICKED_UP"] = "PICKED_UP";
     Parcel_Status["IN_TRANSIT"] = "IN_TRANSIT";
     Parcel_Status["DELIVERED"] = "DELIVERED";
+    Parcel_Status["CONFIRMED"] = "CONFIRMED";
     Parcel_Status["CANCELLED"] = "CANCELLED";
     Parcel_Status["BLOCKED"] = "BLOCKED";
     Parcel_Status["RETURNED"] = "RETURNED";

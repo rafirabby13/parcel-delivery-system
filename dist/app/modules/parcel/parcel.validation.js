@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.returnParcelZodSchema = exports.parcelUpdateZodSchema = exports.trackingEventSchema = exports.assignDeliverySchema = exports.parcelZodSchema = exports.trackingEventZodSchema = void 0;
+exports.cancelParcelZodSchema = exports.returnParcelZodSchema = exports.parcelUpdateZodSchema = exports.trackingEventSchema = exports.assignDeliverySchema = exports.parcelZodSchema = exports.trackingEventZodSchema = void 0;
 const zod_1 = require("zod");
 const parcel_interface_1 = require("./parcel.interface");
 // Address validation schema
@@ -8,6 +8,7 @@ const addressZodSchema = zod_1.z.object({
     name: zod_1.z.string().min(1, "Name is required").max(100, "Name too long"),
     phone: zod_1.z.string().regex(/^01[3-9]\d{8}$/, "Invalid Bangladesh phone number"),
     division: zod_1.z.string().min(1, "Division is required"),
+    district: zod_1.z.string().min(1, "District is required......"),
     city: zod_1.z.string().min(1, "City is required"),
     area: zod_1.z.string().min(1, "Area is required"),
     detailAddress: zod_1.z.string().min(1, "Detail address is required").max(500, "Address too long")
@@ -98,4 +99,8 @@ exports.returnParcelZodSchema = zod_1.z.object({
     returnType: zod_1.z.enum(parcel_interface_1.Cancel_Reason),
     requestedBy: zod_1.z.string().min(1, "Requested by is required"),
     returnLocation: zod_1.z.string().optional()
+});
+exports.cancelParcelZodSchema = zod_1.z.object({
+    parcelId: zod_1.z.string().min(1, "parcelId is required"),
+    updaterId: zod_1.z.string().min(1, "Requested by is required")
 });

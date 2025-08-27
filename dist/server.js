@@ -17,13 +17,14 @@ const dotenv_1 = __importDefault(require("dotenv"));
 const app_1 = __importDefault(require("./app"));
 const env_1 = require("./app/config/env");
 const seedSuperAdmin_1 = require("./app/utils/seedSuperAdmin");
+const redis_config_1 = require("./app/config/redis.config");
 dotenv_1.default.config();
 let server;
 const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
         yield mongoose_1.default.connect(env_1.envVars.DB_URL);
         server = app_1.default.listen(env_1.envVars.PORT, () => {
-            console.log(`Server is running on port ${env_1.envVars.PORT} `);
+            console.log(`Parcel Server is running on port ${env_1.envVars.PORT} `);
         });
     }
     catch (error) {
@@ -31,6 +32,7 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 (() => __awaiter(void 0, void 0, void 0, function* () {
+    yield (0, redis_config_1.connecRedis)();
     yield startServer();
     yield (0, seedSuperAdmin_1.seedSuperAdmin)();
 }))();

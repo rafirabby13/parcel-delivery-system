@@ -42,6 +42,10 @@ const credentialsLogin = (payload) => __awaiter(void 0, void 0, void 0, function
     if (!isPasswordMatched) {
         throw new AppError_1.default(http_status_codes_1.default.BAD_REQUEST, "Password not matched , please check your password");
     }
+    if (!isUserExist.isVerified) {
+        // console.log(isUserExist.isVerified)
+        throw new AppError_1.default(http_status_codes_1.default.BAD_REQUEST, "Not verified , please verify first");
+    }
     const userToken = (0, userTokens_1.createUserToken)(isUserExist);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _a = isUserExist.toObject(), { password: pass } = _a, rest = __rest(_a, ["password"]);
