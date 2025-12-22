@@ -8,6 +8,7 @@ const parcel_routes_1 = require("../modules/parcel/parcel.routes");
 const payment_routes_1 = require("../modules/payment/payment.routes");
 const otp_routes_1 = require("../modules/OTP/otp.routes");
 const stats_routes_1 = require("../modules/stats/stats.routes");
+const pricing_routes_1 = require("../modules/pricing/pricing.routes");
 exports.router = (0, express_1.Router)();
 const moduleRoutes = [
     {
@@ -33,6 +34,10 @@ const moduleRoutes = [
     {
         path: "/stats",
         route: stats_routes_1.StatsRoutes
+    },
+    {
+        path: "/pricing",
+        route: pricing_routes_1.PricingRoutes
     }
 ];
 moduleRoutes.forEach((route) => {
